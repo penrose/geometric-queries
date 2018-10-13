@@ -6,7 +6,7 @@ import PointsAndLines
 
 type Polygon = [Point]
 
--- (helper) bounding box
+-- (helper) bounding box, represented by the diagonal line segment
 bbox :: Polygon -> LineSeg
 bbox pts = let
   xs = map (\(x,y)->x) pts
@@ -56,3 +56,36 @@ segIsInside pts (p1, p2) = let
     Nothing -> noIx
     Just _ -> False
   in endPointsInside && foldl f True ixs
+
+-- (helper) returns the shorter of the two
+shorterSeg :: LineSeg -> LineSeg -> LineSeg
+shorterSeg (p1, p2) (p3, p4) = case (dist p3 p4) - (dist p1 p2) > 0 of
+  True -> (p1, p2)
+  False -> (p3, p4)
+
+-- (helper) a very long segment
+infSeg = ((-1/0, 0), (1/0, 0))
+
+-- returns the shortest segment connecting 
+-- a point on polygon boundary and a point on input segment
+shortestSegmentGS :: Polygon -> LineSeg -> LineSeg
+shortestSegmentGS pts seg = foldl shorterSeg infSeg $ 
+  map (shortestSegmentSS seg) (getSegments pts)
+  
+-- returns the shortest unsigned distance between a polygon and a segment
+shortestDistGS :: Polygon -> LineSeg -> Double
+shortestDistGS pts seg = let 
+  (p1, p2) = shortestSegmentGS pts seg
+  in dist p1 p2
+
+-- returns the shortest segment connecting two polygons' boundaries
+shortestSegmentGG :: Polygon -> Polygon -> LineSeg
+shortestSegmentGG pts1 pts2 =
+  foldl shorterSeg infSeg $ map (shortestSegmentGS pts1) (getSegments pts2)
+  
+-- returns the shortest unsigned distance between two polygons (their boundaries)
+shortestDistGG :: Polygon -> Polygon -> Double
+shortestDistGG pts1 pts2 = let 
+  (p1, p2) = shortestSegmentGG pts1 pts2
+  in dist p1 p2
+
