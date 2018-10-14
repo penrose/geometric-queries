@@ -7,12 +7,23 @@ module Polygons (
   shortestSegmentGS,
   shortestDistGS,
   shortestSegmentGG,
-  shortestDistGG
+  shortestDistGG,
+  -- test
+  closer,
+  getSegments
 ) where
 
 import PointsAndLines
 
 type Polygon = [Point]
+
+-- (test) check polygon type
+segLen :: LineSeg -> Double
+segLen (p1, p2) = dist p1 p2
+
+closer :: Point -> Point -> Point -> Point
+closer p p1 p2 = if (dist p p1) < (dist p p2) then p1 else p2
+
 
 -- (helper) bounding box, represented by the diagonal line segment
 bbox :: Polygon -> LineSeg
@@ -30,8 +41,7 @@ pOutside pts = let ((x1,y1),(x2,y2)) = bbox pts in (x1-3, y1-5)
 getSegments :: Polygon -> [LineSeg]
 getSegments pts = let 
   lastInd = length pts - 1
-  cyc = cycle pts 
-  f x = (cyc!!x, cyc!!(x+1))
+  f x = if x==lastInd then (pts!!lastInd, pts!!0) else (pts!!x, pts!!(x+1))
   in map f [0..lastInd]
 
 -- returns -1 if a given point is in the given polygon, 1 otherwise
@@ -50,8 +60,15 @@ outsidedness pts p = let
 closestPointGP :: Polygon -> Point -> Point
 closestPointGP pts p = let 
   points = map (closestPointPS p) (getSegments pts)--closest point to each segment
-  closerPt p1 p2 = if (dist p p1) < (dist p p2) then p1 else p2
-  in foldl closerPt (points!!0) points
+  -- comb function breaks fay don't know why
+  -- runs perfectly in ghci though
+  b p1 p2 = (dist p p2) > (dist p p1)
+  in myfold p (\((x1,y1),(x2,y2))->if b (x1,y1) (x2,y2) then (x2,y2) else (x1,y1)) 
+     (points!!0) points
+
+myfold a f b [] = b
+myfold a f b (x:xs) = myfold a f (f(b,x)) xs
+
 
 -- returns the signed distance between a polygon and a point
 signedDist :: Polygon -> Point -> Double
