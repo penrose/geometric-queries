@@ -1,5 +1,13 @@
 module Polygons (
--- not done yet so nothing exported
+  ---- from this Polygons module ----
+  outsidedness,
+  closestPointGP,
+  signedDist,
+  segIsInside,
+  shortestSegmentGS,
+  shortestDistGS,
+  shortestSegmentGG,
+  shortestDistGG
 ) where
 
 import PointsAndLines
@@ -40,7 +48,10 @@ outsidedness pts p = let
 
 -- returns the closest point to p on a polygon's boundary
 closestPointGP :: Polygon -> Point -> Point
-closestPointGP pts p = minimum $ map (closestPointPS p) (getSegments pts)
+closestPointGP pts p = let 
+  points = map (closestPointPS p) (getSegments pts)--closest point to each segment
+  closerPt p1 p2 = if (dist p p1) < (dist p p2) then p1 else p2
+  in foldl closerPt (points!!0) points
 
 -- returns the signed distance between a polygon and a point
 signedDist :: Polygon -> Point -> Double

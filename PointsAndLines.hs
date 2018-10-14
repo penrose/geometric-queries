@@ -18,13 +18,17 @@ module PointsAndLines (
   shortestSegmentSS
 ) where
 
+-- (utility) seems like fay doesn't have this
+isInf :: Double -> Bool
+isInf x = x == 1/0 || x == -1/0
+
 -- epsylon for checking fp equality
 epsilon = 0.000000001
 -- helper for checking slope equality *ONLY*
-almostEq a b = (isInfinite a && isInfinite b) || abs (a-b) < epsilon
+almostEq a b = (isInf a && isInf b) || abs (a-b) < epsilon
 
-posInf = 1 / 0
-negInf = -1 / 0
+posInf = (1 / 0) :: Double
+negInf = (-1 / 0) :: Double
 infSeg = ((negInf,negInf), (posInf,posInf))
 
 -- arbitrary constant(s)
@@ -61,8 +65,8 @@ lineToSeg l = let
   (x1, y1) = point l
   y2 = y1 + m * dx
   in ((x1, y1), -- original point
-    (if isInfinite y2 then x1 else x1+dx, -- mind if l is almost vertical
-     if isInfinite y2 then y1+c else y2))
+    (if isInf y2 then x1 else x1+dx, -- mind if l is almost vertical
+     if isInf y2 then y1+c else y2))
 
 
 -- returns the distance between two points
@@ -88,8 +92,8 @@ intersectionLL l1 l2 = let
     case isOnLine (point l1) (lineToSeg l2) of 
       True -> Just (x1, y1)
       False  -> Nothing 
-  else if isInfinite m1 then Just (x1, y2 + m2 * (x1-x2)) -- l1 is vertical
-  else if isInfinite m2 then Just (x2, y1 + m1 * (x2-x1)) -- l2 is vertical
+  else if isInf m1 then Just (x1, y2 + m2 * (x1-x2)) -- l1 is vertical
+  else if isInf m2 then Just (x2, y1 + m1 * (x2-x1)) -- l2 is vertical
   -- l1 and l2 not parallel and both have finite slope
   else let
   num = m1*x1 - m2*x2 + y2 - y1
