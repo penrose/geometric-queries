@@ -1,8 +1,7 @@
-//---- Global vars ----
+//---------- Global vars -------------
 var P, L, G;
 
 var funcs = [];
-
 var currentFuncIndex;
 var args = [];
 
@@ -18,23 +17,99 @@ var FUNC_LIST_WIDTH = 200;
 var TEXT_HEIGHT = 20;
 var SELECTION_START_HEIGHT = 200;
 
+var HIGHLIGHT;
+
 //--------------
+
+window.onload = function () {
+  L = Strict.PointsAndLines;
+  G = Strict.Polygons;
+
+  // functions to be tested
+  funcs = [{
+      f: L.closestPointPS,
+      str: 'closest point <pt> <seg>',
+      render: (res)=>{
+        console.log('added: closest point to p on given segment');
+        elems.push([res]);
+      }
+    }, {
+      f: L.intersectionSS,
+      str: 'intersection <seg> <seg>',
+      render: (res)=>{
+        if(res.instance=='Nothing') {
+          console.log('no segment-segment intersection');
+        } else {
+          console.log('added: segment-segment intersection');
+          elems.push([res.slot1]);
+        }
+      }
+    }, {
+      f: L.shortestSegmentSS,
+      str: 'shortest segment <seg> <seg>',
+      render: (res)=>{
+        console.log('added: shortest segment');
+        elems.push(res);
+      }
+    }, {
+      f: G.closestPointGP,
+      str: 'closest point <poly> <pt>',
+      render: (res)=>{
+        console.log('added: closest point to p on polygon boundary');
+        elems.push([res]);
+      }
+    }, {
+      f: G.segIsInside,
+      str: 'segment inside polygon <poly> <seg>',
+      render: (res)=>{
+        console.log('setment is inside polygon? ' + res);
+      }
+    }, {
+      f: G.shortestSegmentGS,
+      str: 'shortest segment <poly> <seg>',
+      render: (res)=>{
+        console.log('added: shortest segment');
+        elems.push(res);
+      }
+    }, {
+      f: G.shortestSegmentGG,
+      str: 'shortest segment <poly> <poly>',
+      render: (res)=>{
+        console.log('added: shortest segment');
+        elems.push(res);
+      }
+    }
+  ];
+
+}
+
+// utility
+function evaluate (exp, args) {
+  if (args.length==0) return exp;
+  else return evaluate(exp(args[0]), args.slice(1));
+}
+
+
+
+
+//-------------- visualization with p5 -----------------
 
 var sketch = function (p) {
 
+  HIGHLIGHT = p.color(240, 100, 100);
   p.tmpElem = [];
 
   p.setup = function() {
     p.createCanvas(800, 600);
-    p.frameRate(30);
-    p.strokeWeight(1);
+    p.frameRate(24);
+    p.strokeWeight(2);
     p.fill(40);
   }
 
   p.draw = function(){
     p.background(240);
 
-    //draw the half-done polygon
+    //draw the polygon in recording process
     p.beginShape();
     p.fill(255,100,100,100);
     p.noStroke();
@@ -44,7 +119,7 @@ var sketch = function (p) {
 
     //draw the red dot when recording
     if(recording) {
-      p.fill(240,0,0);
+      p.fill(HIGHLIGHT);
       p.noStroke();
       p.ellipse(p.width-20, 20, 10, 10);
     }
@@ -55,22 +130,22 @@ var sketch = function (p) {
       p.text(funcs[i].str, LEFT_MARGIN, 16+i*TEXT_HEIGHT);
       p.noFill();
       p.stroke(40);
-      if(i==currentFuncIndex) p.rect(3,i*TEXT_HEIGHT,FUNC_LIST_WIDTH,20);
+      if(i==currentFuncIndex) p.rect(3,i*TEXT_HEIGHT+2,FUNC_LIST_WIDTH,20);
     }
     // render elements
     for(var i=0; i<elems.length; i++) {
       var e = elems[i];
       if(e.length==1) {
         p.noStroke();
-        if(selections.indexOf(e)<0)p.fill(40); else p.fill(255,100,100);
-        p.ellipse(e[0][0], e[0][1], 4, 4); // point
+        if(selections.indexOf(e)<0)p.fill(40); else p.fill(HIGHLIGHT);
+        p.ellipse(e[0][0], e[0][1], 6, 6); // point
       } else if(e.length==2) {
-        if(selections.indexOf(e)<0)p.stroke(40); else p.stroke(255,100,100);
+        if(selections.indexOf(e)<0)p.stroke(40); else p.stroke(HIGHLIGHT);
         p.line(e[0][0],e[0][1],e[1][0],e[1][1]); //line
       } else {
         p.beginShape();
         p.fill(0,50);
-        if(selections.indexOf(e)<0)p.stroke(40); else p.stroke(255,100,100);
+        if(selections.indexOf(e)<0)p.stroke(40); else p.stroke(HIGHLIGHT);
         for(var j=0; j<e.length; j++) 
           p.vertex(e[j][0], e[j][1])
         p.endShape(p.CLOSE);
@@ -89,7 +164,7 @@ var sketch = function (p) {
       } else if(e.length==2) {
         p.text('segment ('+e[0][0]+', '+e[0][1]+') ('+e[1][0]+', '+e[1][1]+')', x, y);
       } else {
-        p.text('polygon ('+e.length+') sides');
+        p.text('polygon ('+e.length+' sides)', x, y);
       }
     }
   }
@@ -102,7 +177,7 @@ var sketch = function (p) {
 
   p.mouseClicked = function() {
     if(p.mouseX < FUNC_LIST_WIDTH && p.mouseY < TEXT_HEIGHT*funcs.length) 
-      currentFuncIndex = Math.floor(p.mouseY/TEXT_HEIGHT);
+      currentFuncIndex = Math.floor((p.mouseY-2)/TEXT_HEIGHT);
     else if (recording ) {
       if(createMode == 1){ // point
         p.tmpElem = [[p.mouseX, p.mouseY]];
@@ -135,10 +210,10 @@ var sketch = function (p) {
     if(e.length==1) {
       var p1 = e[0];
       var d = evaluate(L.dist, [m, p1]);
-      return (d < 3);
+      return (d < 4);
     } else if(e.length==2) {
       var d = evaluate(L.shortestDistPS, [m, e]);
-      return (d < 3);
+      return (d < 4);
     } else {
       var d = evaluate(G.outsidedness, [e, m]);
       return d==-1;
@@ -177,35 +252,3 @@ var sketch = function (p) {
 }
 
 P = new p5(sketch);
-//--------------
-
-window.onload = function () {
-  L = Strict.PointsAndLines;
-  G = Strict.Polygons;
-  funcs = [{
-      f: L.closestPointPS,
-      str: 'closest point <pt> <seg>',
-      render: (res)=>{
-        console.log('closest point to p on given segment');
-        elems.push([res]);
-      }
-    }, {
-      f: L.intersectionSS,
-      str: 'intersection <seg> <seg>',
-      render: (res)=>{
-        if(res.instance=='Nothing') {
-          console.log('segment-segment intersection: nope');
-        } else {
-          console.log('segment-segment intersection: yup');
-          elems.push([res.slot1]);
-        }
-      }
-    }
-  ];
-}
-
-
-function evaluate (exp, args) {
-  if (args.length==0) return exp;
-  else return evaluate(exp(args[0]), args.slice(1));
-}
