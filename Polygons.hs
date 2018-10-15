@@ -7,23 +7,12 @@ module Polygons (
   shortestSegmentGS,
   shortestDistGS,
   shortestSegmentGG,
-  shortestDistGG,
-  -- test
-  closer,
-  getSegments
+  shortestDistGG
 ) where
 
 import PointsAndLines
 
 type Polygon = [Point]
-
--- (test) check polygon type
-segLen :: LineSeg -> Double
-segLen (p1, p2) = dist p1 p2
-
-closer :: Point -> Point -> Point -> Point
-closer p p1 p2 = if (dist p p1) < (dist p p2) then p1 else p2
-
 
 -- (helper) bounding box, represented by the diagonal line segment
 bbox :: Polygon -> LineSeg
@@ -60,15 +49,10 @@ outsidedness pts p = let
 closestPointGP :: Polygon -> Point -> Point
 closestPointGP pts p = let 
   points = map (closestPointPS p) (getSegments pts)--closest point to each segment
-  -- comb function breaks fay don't know why
-  -- runs perfectly in ghci though
-  b p1 p2 = (dist p p2) > (dist p p1)
-  in myfold p (\((x1,y1),(x2,y2))->if b (x1,y1) (x2,y2) then (x2,y2) else (x1,y1)) 
-     (points!!0) points
-
-myfold a f b [] = b
-myfold a f b (x:xs) = myfold a f (f(b,x)) xs
-
+  closer p1 p2 = (dist p p1) < (dist p p2)
+  in foldl
+    (\(x1,y1) (x2,y2)->if closer (x1,y1) (x2,y2) then (x1,y1) else (x2,y2)) 
+    (points!!0) points
 
 -- returns the signed distance between a polygon and a point
 signedDist :: Polygon -> Point -> Double
