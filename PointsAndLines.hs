@@ -148,36 +148,26 @@ intersectionSS ((x1, y1), (x2, y2)) ((x3, y3), (x4, y4)) = let
          isOnLineSeg (ix, iy) ((x3, y3), (x4, y4)) then Just (ix, iy)
       else Nothing
 
--- returns the shortest distance between two line segments
-shortestDistSS :: LineSeg -> LineSeg -> Double
-shortestDistSS ((x1, y1), (x2, y2)) ((x3, y3), (x4, y4)) = let
-   seg1 = ((x1, y1), (x2, y2))
-   seg2 = ((x3, y3), (x4, y4))
-   in case intersectionSS seg1 seg2 of
-     Just (ix, iy) -> 0.0
-     Nothing -> let
-       d1 = shortestDistPS (x1, y1) seg2
-       d2 = shortestDistPS (x2, y2) seg2
-       d3 = shortestDistPS (x3, y3) seg1
-       d4 = shortestDistPS (x4, y4) seg1
-       in min (min d1 d2) (min d3 d4)
+-- (helper) gives the shortest segment in a list
+shortestSegmentInList ss = let
+  cmb (p1,p2) (p3,p4) = if dist p1 p2 < dist p3 p4 then (p1,p2) else (p3,p4)
+  in foldl cmb infSeg ss
 
 -- returns a shortest line segment with each endpoint on one of two given line segments
--- currently has a bunch of repeated computation though (could've used closestPoint instead)
 shortestSegmentSS :: LineSeg -> LineSeg -> LineSeg
-shortestSegmentSS ((x1, y1), (x2, y2)) ((x3, y3), (x4, y4)) = let
-  seg1 = ((x1, y1), (x2, y2))
-  seg2 = ((x3, y3), (x4, y4))
-  in case intersectionSS seg1 seg2 of
-    Just (ix, iy) -> ((ix, iy), (ix, iy))
-    Nothing -> let
-      d1 = shortestDistPS (x1, y1) seg2
-      d2 = shortestDistPS (x2, y2) seg2
-      d3 = shortestDistPS (x3, y3) seg1
-      d4 = shortestDistPS (x4, y4) seg1
-      d0 = min (min d1 d2) (min d3 d4)
-      in if d0==d1 then ((x1, y1), closestPointPS (x1,y1) seg2) else
-         if d0==d2 then ((x2, y2), closestPointPS (x2,y2) seg2) else
-         if d0==d3 then ((x3, y3), closestPointPS (x3,y3) seg1) else
-         ((x4, y4), closestPointPS (x4,y4) seg1)
+shortestSegmentSS (p1, p2) (p3, p4) = case intersectionSS (p1,p2) (p3,p4) of
+  Just ix -> (ix, ix)
+  Nothing -> let
+    -- two points on seg2
+    cp1 = closestPointPS p1 (p3, p4)
+    cp2 = closestPointPS p2 (p3, p4)
+    -- two points on seg1
+    cp3 = closestPointPS p3 (p1, p2)
+    cp4 = closestPointPS p4 (p1, p2)
+    in shortestSegmentInList [(cp1,p1),(cp2,p2),(cp3,p3),(cp4,p4)]
 
+-- returns the shortest distance between two line segments
+shortestDistSS :: LineSeg -> LineSeg -> Double
+shortestDistSS seg1 seg2 = let
+  (p1, p2) = shortestSegmentSS seg1 seg2
+  in dist p1 p2

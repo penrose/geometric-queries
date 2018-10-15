@@ -22,7 +22,7 @@ bbox pts = let
   in ((minimum xs, minimum ys), (maximum xs, maximum ys))
 
 -- (helper) returns a point outside of a polygon 
--- very arbitrary rn. would be helpful if could introduce some randomness?
+-- very arbitrary rn. Should use some randomness...
 pOutside :: Polygon -> Point
 pOutside pts = let ((x1,y1),(x2,y2)) = bbox pts in (x1-3, y1-5)
 

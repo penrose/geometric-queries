@@ -5,7 +5,24 @@
     <script type="text/javascript" src="main.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.min.js"></script>
     <script type="text/javascript" src="p5sketch.js"></script>
+    <style>
+        canvas{
+            display: block;
+        }
+    </style>
   </head>
   <body>
+    <p>Usage:</p>
+    <p>To make elements: press 1, 2 or 3 to start recording.</p>
+    <ul>
+        <li>1: record a point. Click on where to place it</li>
+        <li>2: record a segment. Click twice to specify its endpoints</li>
+        <li>3: record a polygon. Click to specify its vertices in order. When done, press c (close).</li>
+    </ul>
+    <p>when not recording, click on an element to toggle selection. If clicked at places where elements overlap, it toggles all elements underneath. Selected elements are listed in order on the left.</p>
+    <p>Press d to delete selected elements</p>
+    <p>Click on a function on top left (whose required arguments are also listed)</p>
+    <p>Press space bar to feed currently selected list of elements as input to the selected function. Order of arguments matter (otherwise it crashes)</p>
+
   </body>
 </html>
