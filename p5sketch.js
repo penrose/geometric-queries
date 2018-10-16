@@ -13,7 +13,7 @@ var createMode = 0;
 
 //-------layout--------
 var LEFT_MARGIN = 8;
-var FUNC_LIST_WIDTH = 200;
+var FUNC_LIST_WIDTH = 240;
 var TEXT_HEIGHT = 20;
 var SELECTION_START_HEIGHT = 200;
 
@@ -62,7 +62,7 @@ window.onload = function () {
       f: G.segIsInside,
       str: 'segment inside polygon <poly> <seg>',
       render: (res)=>{
-        console.log('setment is inside polygon? ' + res);
+        console.log('segment is inside polygon? ' + res);
       }
     }, {
       f: G.shortestSegmentGS,
@@ -162,7 +162,8 @@ var sketch = function (p) {
       if(e.length==1) {
         p.text('point ('+e[0][0]+', '+e[0][1]+')', x, y);
       } else if(e.length==2) {
-        p.text('segment ('+e[0][0]+', '+e[0][1]+') ('+e[1][0]+', '+e[1][1]+')', x, y);
+        p.text('segment ('+e[0][0]+', '+e[0][1]+') ('
+          +e[1][0]+', '+e[1][1]+')', x, y);
       } else {
         p.text('polygon ('+e.length+' sides)', x, y);
       }
