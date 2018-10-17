@@ -45,6 +45,22 @@ outsidedness pts p = let
   ixCount = foldl f 0 ixs
   in if mod ixCount 2 == 0 then 1 else -1
 
+outsidednessAlt :: Polygon -> Point -> Double
+outsidednessAlt pts (x0,y0) = let
+  diffp = map (\(x,y)->(x-x0,y-y0)) pts
+  getAngle (x,y) = atan2 y x 
+  sweeps = map (\(p1,p2)->(getAngle p2)-(getAngle p1)) (getSegments diffp)
+  adjust sweep = 
+    if sweep>pi then sweep-2*pi
+    else if sweep<(-pi) then 2*pi+sweep
+    else sweep
+  sweepAdjusted = map adjust sweeps
+  -- if inside pos poly, res would be 2*pi,
+  -- if inside neg poly, res would be -2*pi,
+  -- else res would be 0
+  res = foldl (+) 0.0 sweepAdjusted
+  in res
+
 -- returns the closest point to p on a polygon's boundary
 closestPointGP :: Polygon -> Point -> Point
 closestPointGP pts p = let 
