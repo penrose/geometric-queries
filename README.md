@@ -6,7 +6,7 @@ It also contains a JavaScript visualizer of a subset of the functions.
 
 ### Usage for the visualizer
 
-##### Installation
+#### Installation
 
 It doesn't require any installation if you only want to see the visualization of the current Haskell code. Just download the repo and double click on `index.html` to run.
 
@@ -21,7 +21,7 @@ And then double click on `index.html`.
 p.s. Please don't change any function names, unless in `p5sketch.js` in the testing functions list (starting on line 29) the name is also changed accordingly.
 
 
-##### Usage
+#### Usage
 
 To make elements: press `1`, `2` or `3` to start recording.
 
@@ -59,3 +59,7 @@ Note: some results show up as new elements added onto the canvas, but some only 
 [Fay](https://github.com/faylang/fay/wiki)
 
 [p5.js](https://p5js.org/)
+
+### Note
+
+Will no longer maintain this branch because this visualizer is switching to using a server instead.
