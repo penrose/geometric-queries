@@ -1,12 +1,12 @@
 -- Currently fp edge cases (div by 0, Infinity) not handled
 module PointsAndLines (
-  -- helpers for debug
-  Line(..),
-  line,
-  normalLine,
-  intersectionLL,
-  isOnLine,
-  -- exports
+  -- -- helpers for debug
+  -- Line(..),
+  -- line,
+  -- normalLine,
+  -- intersectionLL,
+  -- isOnLine,
+  -- -- exports
   Point,
   LineSeg,
   dist,

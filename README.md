@@ -1,27 +1,30 @@
 ### Description
 
-My Haskell implementation for this [Geometric Intro](https://github.com/penrose/GraphicsAPIDocs/blob/master/GeometryIntro.pdf) problem set by Katherine. Haskell code is in `PointsAndLines.hs` and `Polygons.hs`.
+My Haskell implementation for some geometric queries, starting from this [Geometric Intro](https://github.com/penrose/GraphicsAPIDocs/blob/master/GeometryIntro.pdf) problem set by Katherine. Haskell code is in `PointsAndLines.hs` and `Polygons.hs`.
 
-It also contains a JavaScript visualizer of a subset of the functions.
+It also contains a JavaScript visualizer for some of the functions.
+
+#### current progress
+
+Changed from using Fay to using a small server (the Fay version is in Fay branch). Implementation now runs directly in Haskell. Also to test a function, press `enter` instead of `space` because `space` also scrolls the page. 
+
+TODO: add distance functions and clean up old code.
 
 ### Usage for the visualizer
 
-##### Installation
+#### Get it running
 
-It doesn't require any installation if you only want to see the visualization of the current Haskell code. Just download the repo and double click on `index.html` to run.
+(note: haven't tried running the binary from a computer without GHC installed.)
 
-However if any Haskell code is changed, the new code needs to be re-compiled using Fay in order to show effect in the visualizer. Installation instruction for Fay can be found [here](https://github.com/faylang/fay/wiki). 
+From command line, run `./main` to start the server. Then in a browser go to localhost:9200
 
-To re-compile with Fay, go to the directory of this repo and run
+If any change is made to the Haskell code, need to recompile to update the change in visualizer.
 
-`fay main.hs --strict PointsAndLines,Polygons`
+Alternatively, load `main.hs` into ghci and run the `main` function.
 
-And then double click on `index.html`.
+p.s. Please don't change any function names in Haskell code.
 
-p.s. Please don't change any function names, unless in `p5sketch.js` in the testing functions list (starting on line 29) the name is also changed accordingly.
-
-
-##### Usage
+#### Usage
 
 To make elements: press `1`, `2` or `3` to start recording.
 
@@ -35,7 +38,7 @@ You can press `d` to delete selected elements.
 
 Click on a function on top left (whose required arguments are also listed).
 
-Press `space` to feed currently selected list of elements as input to the selected function. Order of arguments matter (otherwise it crashes).
+Press `Enter` to feed currently selected list of elements as input to the selected function. Order of arguments matter (otherwise it crashes).
 
 ![A screenshot](https://miyehn.me/files/screenshot.png)
 
@@ -56,6 +59,6 @@ Note: some results show up as new elements added onto the canvas, but some only 
 
 ### Tools used
 
-[Fay](https://github.com/faylang/fay/wiki)
+[Scotty](https://github.com/scotty-web/scotty)
 
 [p5.js](https://p5js.org/)

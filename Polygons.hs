@@ -1,5 +1,6 @@
 module Polygons (
   ---- from this Polygons module ----
+  Polygon,
   outsidedness,
   closestPointGP,
   signedDist,
@@ -35,7 +36,7 @@ getSegments pts = let
 
 -- returns -1 if a given point is in the given polygon, 1 otherwise
 -- could bump into weird edge cases esp if polygon has many vertices
-outsidedness :: Polygon -> Point -> Int
+outsidedness :: Polygon -> Point -> Double
 outsidedness pts p = let
   raySeg = (p, pOutside pts)
   ixs = map (intersectionSS raySeg) (getSegments pts)
@@ -43,7 +44,7 @@ outsidedness pts p = let
     Nothing -> count
     Just _ -> count + 1
   ixCount = foldl f 0 ixs
-  in if mod ixCount 2 == 0 then 1 else -1
+  in if mod ixCount 2 == 0 then 1.0 else -1.0
 
 outsidednessAlt :: Polygon -> Point -> Double
 outsidednessAlt pts (x0,y0) = let
@@ -73,7 +74,7 @@ closestPointGP pts p = let
 -- returns the signed distance between a polygon and a point
 signedDist :: Polygon -> Point -> Double
 signedDist pts p = (dist p $ closestPointGP pts p) 
-  * (fromIntegral $ outsidedness pts p)
+  * (outsidedness pts p)
 
 -- returns True if given segment is completely inside polygon, False otherwise
 segIsInside :: Polygon -> LineSeg -> Bool
