@@ -1,19 +1,31 @@
 module Polygons (
+  -- for debug
+  unitSq,
   ---- from this Polygons module ----
   Polygon,
   outsidedness,
+  outsidednessOld,
   closestPointGP,
   signedDist,
   segIsInside,
   shortestSegmentGS,
+  longestSegmentGS,
   shortestDistGS,
   shortestSegmentGG,
-  shortestDistGG
+  longestSegmentGG,
+  unsignedDistGG,
+  minSignedDistSegGG,
+  maxSignedDistSegGG
 ) where
 
 import PointsAndLines
+import Data.List
+import Debug.Trace
 
 type Polygon = [Point]
+
+unitSq = [(0,0),(0,1),(1,1),(1,0)]::Polygon
+unitSq2 = [(0.5,0.5),(1.5,0.5),(1.5,1.5),(0.5,1.5)]::Polygon
 
 -- (helper) bounding box, represented by the diagonal line segment
 bbox :: Polygon -> LineSeg
@@ -34,10 +46,10 @@ getSegments pts = let
   f x = if x==lastInd then (pts!!lastInd, pts!!0) else (pts!!x, pts!!(x+1))
   in map f [0..lastInd]
 
--- returns -1 if a given point is in the given polygon, 1 otherwise
+-- (deprecated) returns -1 if a given point is in the given polygon, 1 otherwise
 -- could bump into weird edge cases esp if polygon has many vertices
-outsidedness :: Polygon -> Point -> Double
-outsidedness pts p = let
+outsidednessOld :: Polygon -> Point -> Double
+outsidednessOld pts p = let
   raySeg = (p, pOutside pts)
   ixs = map (intersectionSS raySeg) (getSegments pts)
   f count ix = case ix of
@@ -46,8 +58,11 @@ outsidedness pts p = let
   ixCount = foldl f 0 ixs
   in if mod ixCount 2 == 0 then 1.0 else -1.0
 
-outsidednessAlt :: Polygon -> Point -> Double
-outsidednessAlt pts (x0,y0) = let
+-- returns -1.0 if given point is inside polygon or on its boundary, 1.0 otherwise
+outsidedness :: Polygon -> Point -> Double
+outsidedness pts (x0,y0) = 
+  if dist (x0,y0) (closestPointGP pts (x0,y0))<epsilon then 0.0
+  else let
   diffp = map (\(x,y)->(x-x0,y-y0)) pts
   getAngle (x,y) = atan2 y x 
   sweeps = map (\(p1,p2)->(getAngle p2)-(getAngle p1)) (getSegments diffp)
@@ -60,7 +75,7 @@ outsidednessAlt pts (x0,y0) = let
   -- if inside neg poly, res would be -2*pi,
   -- else res would be 0
   res = foldl (+) 0.0 sweepAdjusted
-  in res
+  in if res>pi || res<(-pi) then -1.0 else 1.0
 
 -- returns the closest point to p on a polygon's boundary
 closestPointGP :: Polygon -> Point -> Point
@@ -92,15 +107,28 @@ shorterSeg (p1, p2) (p3, p4) = case (dist p3 p4) - (dist p1 p2) > 0 of
   True -> (p1, p2)
   False -> (p3, p4)
 
--- (helper) a very long segment
-infSeg = ((-1/0, 0), (1/0, 0))
+-- (helper) opposite of shorterSeg
+longerSeg :: LineSeg -> LineSeg -> LineSeg
+longerSeg (p1, p2) (p3, p4) = case (dist p3 p4) - (dist p1 p2) < 0 of
+  True -> (p1, p2)
+  False -> (p3, p4)
 
 -- returns the shortest segment connecting 
 -- a point on polygon boundary and a point on input segment
 shortestSegmentGS :: Polygon -> LineSeg -> LineSeg
 shortestSegmentGS pts seg = foldl shorterSeg infSeg $ 
   map (shortestSegmentSS seg) (getSegments pts)
-  
+
+-- (helper) the side on segment is furthest from the polygon wrt. unsigned dist
+longestSegmentGS :: Polygon -> LineSeg -> LineSeg
+longestSegmentGS pts ((x1,y1), (x2,y2)) = let
+  density = dist (x1,y1) (x2,y2)
+  stepx = (x2-x1) / density
+  stepy = (y2-y1) / density
+  indices = [0..density]
+  samples = map (\i->(x1+i*stepx, y1+i*stepy)) indices
+  in foldl longerSeg zeroSeg $ map (\p->(closestPointGP pts p, p)) samples
+
 -- returns the shortest unsigned distance between a polygon and a segment
 shortestDistGS :: Polygon -> LineSeg -> Double
 shortestDistGS pts seg = let 
@@ -113,8 +141,60 @@ shortestSegmentGG pts1 pts2 =
   foldl shorterSeg infSeg $ map (shortestSegmentGS pts1) (getSegments pts2)
   
 -- returns the shortest unsigned distance between two polygons (their boundaries)
-shortestDistGG :: Polygon -> Polygon -> Double
-shortestDistGG pts1 pts2 = let 
+unsignedDistGG :: Polygon -> Polygon -> Double
+unsignedDistGG pts1 pts2 = let 
   (p1, p2) = shortestSegmentGG pts1 pts2
   in dist p1 p2
 
+-- (helper) ASYMMETRICAL. Length of result is max unsigned dist.
+longestSegmentGG :: Polygon -> Polygon -> LineSeg
+longestSegmentGG pts1 pts2 = 
+  foldl longerSeg zeroSeg $ map (longestSegmentGS pts1) (getSegments pts2)
+
+maxUnsignedDistGG :: Polygon -> Polygon -> Double
+maxUnsignedDistGG pts1 pts2 = let
+  (p1, p2) = longestSegmentGG pts1 pts2
+  in dist p1 p2
+
+cookieSeg :: Polygon -> LineSeg -> ([LineSeg], [LineSeg])
+cookieSeg pts (p1,p2) = let
+  ixs = map (intersectionSS (p1,p2)) (getSegments pts)
+  f ix = case ix of
+    Nothing -> False
+    Just _ -> True
+  ixsFilter = filter f ixs
+  g ix = case ix of
+    Just x -> x
+  cutPts = p1:p2:(map g ixsFilter)
+  cmp q1 q2 = compare (dist p1 q1) (dist p1 q2)
+  cutPtsSorted = sortBy cmp cutPts
+  allSegments = tail $ 
+    map (\i->if i==0 then ((0,0),(0,0)) 
+    else (cutPtsSorted!!i,cutPtsSorted!!(i-1))) [0..((length cutPts)-1)]
+  inside (p1,p2) = outsidedness pts p1<0 || outsidedness pts p2<0
+  (l1, l2) = partition inside allSegments
+  in (filter (\(p1,p2)->dist p1 p2>epsilon) l1, 
+      filter (\(p1,p2)->dist p1 p2>epsilon) l2)
+
+-- use polyA as cookie cutter, divide polyB into segments inside and outside of A
+cookiePoly :: Polygon -> Polygon -> ([LineSeg], [LineSeg])
+cookiePoly polyA polyB = let
+  -- cut all segments of B with A
+  raw = map (\seg->cookieSeg polyA seg) (getSegments polyB)
+  in foldl (\(l1,l2) (l3,l4)->(l1++l3,l2++l4)) ([],[]) raw
+
+minSignedDistSegGG :: Polygon -> Polygon -> LineSeg
+minSignedDistSegGG polyA polyB = let
+  (inside, outside) = cookiePoly polyA polyB
+  (p1,p2) = foldl shorterSeg infSeg $ map (shortestSegmentGS polyA) outside
+  (p3,p4) = foldl longerSeg zeroSeg $ map (longestSegmentGS polyA) inside
+  lenIn = dist p3 p4
+  in if lenIn>0 then (p3,p4) else (p1,p2)
+
+maxSignedDistSegGG :: Polygon -> Polygon -> LineSeg
+maxSignedDistSegGG polyA polyB = let
+  (inside, outside) = cookiePoly polyA polyB
+  (p1,p2) = foldl longerSeg zeroSeg $ map (longestSegmentGS polyA) outside
+  (p3,p4) = foldl shorterSeg infSeg $ map (shortestSegmentGS polyA) inside
+  lenOut = dist p1 p2
+  in if lenOut>0 then (p1,p2) else (p3,p4)

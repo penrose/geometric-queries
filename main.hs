@@ -10,6 +10,7 @@ import Data.Aeson
 import Web.Scotty as S
 import PointsAndLines
 import Polygons
+import Debug.Trace
 
 
 data Output = Output {
@@ -74,6 +75,14 @@ eval func args = case func of
     shortestSegmentGS (parsePoly (args!!0)) (parseSeg (args!!1))
   "shortestSegmentGG" -> strSeg $
     shortestSegmentGG (parsePoly (args!!0)) (parsePoly (args!!1))
+  "longestSegmentGS" -> strSeg $
+    longestSegmentGS (parsePoly (args!!0)) (parseSeg (args!!1))
+  "longestSegmentGG" -> strSeg $
+    longestSegmentGG (parsePoly (args!!0)) (parsePoly (args!!1))
+  "minSignedDistSegGG" -> strSeg $
+    minSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
+  "maxSignedDistSegGG" -> strSeg $
+    maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
 
 parsePt :: [[Double]] -> Point
 parsePt arg = (arg!!0!!0, arg!!0!!1)

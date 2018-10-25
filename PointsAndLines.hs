@@ -6,6 +6,9 @@ module PointsAndLines (
   -- normalLine,
   -- intersectionLL,
   -- isOnLine,
+  epsilon,
+  infSeg,
+  zeroSeg,
   -- -- exports
   Point,
   LineSeg,
@@ -15,7 +18,8 @@ module PointsAndLines (
   shortestDistPS,
   intersectionSS,
   shortestDistSS,
-  shortestSegmentSS
+  shortestSegmentSS,
+  longestSegmentSS
 ) where
 
 -- (utility) seems like fay doesn't have this
@@ -30,6 +34,7 @@ almostEq a b = (isInf a && isInf b) || abs (a-b) < epsilon
 posInf = (1 / 0) :: Double
 negInf = (-1 / 0) :: Double
 infSeg = ((negInf,negInf), (posInf,posInf))
+zeroSeg = ((0,0), (0,0))
 
 -- arbitrary constant(s)
 c = 4
@@ -153,6 +158,11 @@ shortestSegmentInList ss = let
   cmb (p1,p2) (p3,p4) = if dist p1 p2 < dist p3 p4 then (p1,p2) else (p3,p4)
   in foldl cmb infSeg ss
 
+-- (helper) opposite from above
+longestSegmentInList ss = let
+  cmb (p1,p2) (p3,p4) = if dist p1 p2 > dist p3 p4 then (p1,p2) else (p3,p4)
+  in foldl cmb zeroSeg ss
+
 -- returns a shortest line segment with each endpoint on one of two given line segments
 shortestSegmentSS :: LineSeg -> LineSeg -> LineSeg
 shortestSegmentSS (p1, p2) (p3, p4) = case intersectionSS (p1,p2) (p3,p4) of
@@ -165,6 +175,14 @@ shortestSegmentSS (p1, p2) (p3, p4) = case intersectionSS (p1,p2) (p3,p4) of
     cp3 = closestPointPS p3 (p1, p2)
     cp4 = closestPointPS p4 (p1, p2)
     in shortestSegmentInList [(cp1,p1),(cp2,p2),(cp3,p3),(cp4,p4)]
+
+-- (helper) ASYMMETRICAL. Connects the pt on seg2 furthest (wrt. unsigned dist) from seg1 to seg1
+longestSegmentSS :: LineSeg -> LineSeg -> LineSeg
+longestSegmentSS (p1, p2) (p3, p4) = let
+    -- two points on seg1
+    cp3 = closestPointPS p3 (p1, p2)
+    cp4 = closestPointPS p4 (p1, p2)
+    in longestSegmentInList [(cp3,p3),(cp4,p4)]
 
 -- returns the shortest distance between two line segments
 shortestDistSS :: LineSeg -> LineSeg -> Double

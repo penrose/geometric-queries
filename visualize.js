@@ -14,9 +14,10 @@ var createMode = 0;
 
 //-------layout--------
 var LEFT_MARGIN = 8;
+var BOTTOM_MARGIN = 16;
 var FUNC_LIST_WIDTH = 240;
 var TEXT_HEIGHT = 20;
-var SELECTION_START_HEIGHT = 200;
+var SELECTION_START_HEIGHT = 300;
 
 var HIGHLIGHT;
 
@@ -70,14 +71,43 @@ window.onload = function () {
         elems.push(res);
       }
     }, {
-      f: "shortestSegmentGG",
-      str: 'shortest segment <poly> <poly>',
+      f: "longestSegmentGS",
+      str: 'max unsigned dist <poly> <seg>',
       render: (res)=>{
-        console.log('added: shortest segment');
+        console.log('added: longest segment');
+        elems.push(res);
+      }
+    }, {}, {
+      f: "shortestSegmentGG",
+      str: 'min unsigned dist <poly> <poly>',
+      render: (res)=>{
+        console.log('added: seg represents min unsigned distance');
+        elems.push(res);
+      }
+    }, {
+      f: "minSignedDistSegGG",
+      str: 'min signed dist <poly> <poly>',
+      render: (res)=>{
+        console.log('added: seg represents min signed distance');
+        elems.push(res);
+      }
+    }, {
+      f: "longestSegmentGG",
+      str: 'max unsigned dist <poly> <poly>',
+      render: (res)=>{
+        console.log('added: seg reprensents max unsigned distance');
+        elems.push(res);
+      }
+    }, {
+      f: "maxSignedDistSegGG",
+      str: 'max signed dist <poly> <poly>',
+      render: (res)=>{
+        console.log('added: seg represents max signed distance');
         elems.push(res);
       }
     }
   ];
+  document.getElementById('manual').onclick = manualAdd;
   
 }
 
@@ -121,6 +151,12 @@ function doHttpGet(url, handler) {
     connection.abort();
   }
   connection.send();
+}
+
+function manualAdd(){
+  var txt = document.getElementById('input').value;
+  elems.push(eval('['+txt+']'));
+
 }
 
 //-------------- visualization with p5 -----------------
@@ -199,6 +235,9 @@ var sketch = function (p) {
         p.text('polygon ('+e.length+' sides)', x, y);
       }
     }
+    //show mouse coordinates
+    p.text('mouse at: ('+p.mouseX+', '+p.mouseY+')', 
+      LEFT_MARGIN, p.height-BOTTOM_MARGIN);
   }
 
   p.stopRecording = function() {
@@ -208,29 +247,31 @@ var sketch = function (p) {
   }
 
   p.mouseClicked = function() {
-    if(p.mouseX < FUNC_LIST_WIDTH && p.mouseY < TEXT_HEIGHT*funcs.length) 
-      currentFuncIndex = Math.floor((p.mouseY-2)/TEXT_HEIGHT);
-    else if (recording ) {
-      if(createMode == 1){ // point
-        p.tmpElem = [[p.mouseX, p.mouseY]];
-        p.stopRecording();
-      } else if(createMode == 2) { // line
-        p.tmpElem.push([p.mouseX, p.mouseY]);
-        if(p.tmpElem.length==2) {
+    if(p.oncanvas()){
+      if(p.mouseX < FUNC_LIST_WIDTH && p.mouseY < TEXT_HEIGHT*funcs.length) 
+        currentFuncIndex = Math.floor((p.mouseY-2)/TEXT_HEIGHT);
+      else if (recording ) {
+        if(createMode == 1){ // point
+          p.tmpElem = [[p.mouseX, p.mouseY]];
           p.stopRecording();
+        } else if(createMode == 2) { // line
+          p.tmpElem.push([p.mouseX, p.mouseY]);
+          if(p.tmpElem.length==2) {
+            p.stopRecording();
+          }
+        } else { // polygon
+          p.tmpElem.push([p.mouseX, p.mouseY]);
+          // this one doesn't automatically stop recording
         }
-      } else { // polygon
-        p.tmpElem.push([p.mouseX, p.mouseY]);
-        // this one doesn't automatically stop recording
-      }
-    } else {
-      for(var i=0; i<elems.length; i++) {
-        if(p.isOnElem(elems[i])){
-          var ind = selections.indexOf(elems[i]);
-          if(ind>=0){
-            selections.splice(ind,1);
-          } else {
-            selections.push(elems[i]);
+      } else {
+        for(var i=0; i<elems.length; i++) {
+          if(p.isOnElem(elems[i])){
+            var ind = selections.indexOf(elems[i]);
+            if(ind>=0){
+              selections.splice(ind,1);
+            } else {
+              selections.push(elems[i]);
+            }
           }
         }
       }
@@ -252,28 +293,34 @@ var sketch = function (p) {
   }
 
   p.keyTyped = function() {
-    if(p.key=='c'){
-      p.stopRecording();
-    } else if(p.key=='1') {
-      recording = true;
-      createMode = 1;
-    } else if(p.key=='2') {
-      recording = true;
-      createMode = 2;
-    } else if(p.key=='3') {
-      recording = true;
-      createMode = 3;
-    } else if(p.keyCode==p.ENTER) {      
-      args = selections;
-      func = funcs[currentFuncIndex];
-      func.render(evaluate(func.f, args));
-    } else if(p.key=='d') {
-      for(var i=0; i<selections.length; i++) {
-        var ind = elems.indexOf(selections[i]);
-        elems.splice(ind, 1);
+    if(p.oncanvas()){
+      if(p.key=='c'){
+        p.stopRecording();
+      } else if(p.key=='1') {
+        recording = true;
+        createMode = 1;
+      } else if(p.key=='2') {
+        recording = true;
+        createMode = 2;
+      } else if(p.key=='3') {
+        recording = true;
+        createMode = 3;
+      } else if(p.key=='0') {
+        args = selections;
+        func = funcs[currentFuncIndex];
+        func.render(evaluate(func.f, args));
+      } else if(p.key=='d') {
+        for(var i=0; i<selections.length; i++) {
+          var ind = elems.indexOf(selections[i]);
+          elems.splice(ind, 1);
+        }
+        selections = [];
       }
-      selections = [];
     }
+  }
+  p.oncanvas = function() {
+    return p.mouseX>=0 && p.mouseX<=p.width &&
+      p.mouseY>=0 && p.mouseY<=p.height
   }
 
 }
