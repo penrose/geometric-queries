@@ -6,11 +6,9 @@ It also contains a JavaScript visualizer for some of the functions.
 
 #### current progress
 
-Added the 4 main distance functions, although currently max unsigned distance function is using an approximation.
-  
-Also to test a function, changed to press `0` now because p5 seems to have a bug in detecting `enter`...
+Although code is very ugly, now (finally!!) solves for exact maximum unsigned distance.
 
-TODO: clean up old code, and decide if worth solving for exact max unsigned distance.
+TODO: clean up old code
 
 ### Usage for the visualizer
 

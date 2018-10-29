@@ -71,7 +71,7 @@ window.onload = function () {
         elems.push(res);
       }
     }, {
-      f: "longestSegmentGS",
+      f: "maxUDistSegGS",
       str: 'max unsigned dist <poly> <seg>',
       render: (res)=>{
         console.log('added: longest segment');
@@ -92,7 +92,7 @@ window.onload = function () {
         elems.push(res);
       }
     }, {
-      f: "longestSegmentGG",
+      f: "maxUDistSegGG",
       str: 'max unsigned dist <poly> <poly>',
       render: (res)=>{
         console.log('added: seg reprensents max unsigned distance');

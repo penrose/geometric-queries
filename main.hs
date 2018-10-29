@@ -75,10 +75,10 @@ eval func args = case func of
     shortestSegmentGS (parsePoly (args!!0)) (parseSeg (args!!1))
   "shortestSegmentGG" -> strSeg $
     shortestSegmentGG (parsePoly (args!!0)) (parsePoly (args!!1))
-  "longestSegmentGS" -> strSeg $
-    longestSegmentGS (parsePoly (args!!0)) (parseSeg (args!!1))
-  "longestSegmentGG" -> strSeg $
-    longestSegmentGG (parsePoly (args!!0)) (parsePoly (args!!1))
+  "maxUDistSegGS" -> strSeg $
+    maxUDistSegGS (parsePoly (args!!0)) (parseSeg (args!!1))
+  "maxUDistSegGG" -> strSeg $
+    maxUDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
   "minSignedDistSegGG" -> strSeg $
     minSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
   "maxSignedDistSegGG" -> strSeg $

@@ -9,10 +9,10 @@ module Polygons (
   signedDist,
   segIsInside,
   shortestSegmentGS,
-  longestSegmentGS,
+  maxUDistSegGS,
   shortestDistGS,
   shortestSegmentGG,
-  longestSegmentGG,
+  maxUDistSegGG,
   unsignedDistGG,
   minSignedDistSegGG,
   maxSignedDistSegGG
@@ -119,15 +119,29 @@ shortestSegmentGS :: Polygon -> LineSeg -> LineSeg
 shortestSegmentGS pts seg = foldl shorterSeg infSeg $ 
   map (shortestSegmentSS seg) (getSegments pts)
 
--- (helper) the side on segment is furthest from the polygon wrt. unsigned dist
-longestSegmentGS :: Polygon -> LineSeg -> LineSeg
-longestSegmentGS pts ((x1,y1), (x2,y2)) = let
+-- (helper) (approximation) D_{A,s} (max unsigned dist from a poly to a segment)
+maxUDistSegGSaprx :: Polygon -> LineSeg -> LineSeg
+maxUDistSegGSaprx pts ((x1,y1), (x2,y2)) = let
   density = dist (x1,y1) (x2,y2)
   stepx = (x2-x1) / density
   stepy = (y2-y1) / density
   indices = [0..density]
   samples = map (\i->(x1+i*stepx, y1+i*stepy)) indices
   in foldl longerSeg zeroSeg $ map (\p->(closestPointGP pts p, p)) samples
+
+-- (helper) (exact) D_{A,s} (max unsigned dist from a poly to a segment)
+maxUDistSegGS :: Polygon -> LineSeg -> LineSeg
+maxUDistSegGS pts seg = let
+  ((x1,y1), (x2,y2)) = seg
+  boundary = getSegments pts
+  pairs = concat $ map (\s->map (\t->(s,t)) boundary) boundary
+  cmp q1 q2 = compare (dist q1 (x1,y1)) (dist q2 (x1,y1))
+  eq q1 q2 = dist q1 q2 < epsilon
+  candidatesRaw = map head $ group $ sort $
+    concat $ map (mudCandRel seg) pairs
+  candidatePt = map (\rel -> (x1+rel*(x2-x1), y1+rel*(y2-y1))) candidatesRaw
+  candidateSeg = map (\p->(p, closestPointGP pts p)) candidatePt
+  in foldl longerSeg zeroSeg candidateSeg
 
 -- returns the shortest unsigned distance between a polygon and a segment
 shortestDistGS :: Polygon -> LineSeg -> Double
@@ -146,14 +160,15 @@ unsignedDistGG pts1 pts2 = let
   (p1, p2) = shortestSegmentGG pts1 pts2
   in dist p1 p2
 
--- (helper) ASYMMETRICAL. Length of result is max unsigned dist.
-longestSegmentGG :: Polygon -> Polygon -> LineSeg
-longestSegmentGG pts1 pts2 = 
-  foldl longerSeg zeroSeg $ map (longestSegmentGS pts1) (getSegments pts2)
+-- Length of result is D_{A,B} (max unsigned dist).
+maxUDistSegGG :: Polygon -> Polygon -> LineSeg
+maxUDistSegGG pts1 pts2 = 
+  foldl longerSeg zeroSeg $ map (maxUDistSegGS pts1) (getSegments pts2)
 
-maxUnsignedDistGG :: Polygon -> Polygon -> Double
-maxUnsignedDistGG pts1 pts2 = let
-  (p1, p2) = longestSegmentGG pts1 pts2
+-- D_{A,B} max unsigned distance between polygons A and B
+maxUDistGG :: Polygon -> Polygon -> Double
+maxUDistGG pts1 pts2 = let
+  (p1, p2) = maxUDistSegGG pts1 pts2
   in dist p1 p2
 
 cookieSeg :: Polygon -> LineSeg -> ([LineSeg], [LineSeg])
@@ -187,14 +202,14 @@ minSignedDistSegGG :: Polygon -> Polygon -> LineSeg
 minSignedDistSegGG polyA polyB = let
   (inside, outside) = cookiePoly polyA polyB
   (p1,p2) = foldl shorterSeg infSeg $ map (shortestSegmentGS polyA) outside
-  (p3,p4) = foldl longerSeg zeroSeg $ map (longestSegmentGS polyA) inside
+  (p3,p4) = foldl longerSeg zeroSeg $ map (maxUDistSegGS polyA) inside
   lenIn = dist p3 p4
   in if lenIn>0 then (p3,p4) else (p1,p2)
 
 maxSignedDistSegGG :: Polygon -> Polygon -> LineSeg
 maxSignedDistSegGG polyA polyB = let
   (inside, outside) = cookiePoly polyA polyB
-  (p1,p2) = foldl longerSeg zeroSeg $ map (longestSegmentGS polyA) outside
+  (p1,p2) = foldl longerSeg zeroSeg $ map (maxUDistSegGS polyA) outside
   (p3,p4) = foldl shorterSeg infSeg $ map (shortestSegmentGS polyA) inside
   lenOut = dist p1 p2
   in if lenOut>0 then (p1,p2) else (p3,p4)
