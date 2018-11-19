@@ -83,6 +83,15 @@ eval func args = case func of
     minSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
   "maxSignedDistSegGG" -> strSeg $
     maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
+  -- below: for test in js
+  "maxUDistGG" -> show $
+    maxUDistGG (parsePoly (args!!0)) (parsePoly (args!!1))
+  "maxUDistGGtest" -> show $
+    maxUDistGGtest (parsePoly (args!!0)) (parsePoly (args!!1))
+  "maxUDistGGtestSeg" -> strSeg $
+    maxUDistGGtestSeg (parsePoly (args!!0)) (parsePoly (args!!1))
+  "maxUDistSegGSaprx" -> strSeg $ 
+    maxUDistSegGSaprx (parsePoly (args!!0)) (parseSeg (args!!1))
 
 parsePt :: [[Double]] -> Point
 parsePt arg = (arg!!0!!0, arg!!0!!1)

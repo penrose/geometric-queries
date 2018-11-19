@@ -1,10 +1,10 @@
 module Polygons (
   -- for debug
   unitSq,
+  unitSq2,
   ---- from this Polygons module ----
   Polygon,
   outsidedness,
-  outsidednessOld,
   closestPointGP,
   signedDist,
   segIsInside,
@@ -15,12 +15,16 @@ module Polygons (
   maxUDistSegGG,
   unsignedDistGG,
   minSignedDistSegGG,
-  maxSignedDistSegGG
+  maxSignedDistSegGG,
+  -- for testing --
+  maxUDistGG,
+  maxUDistGGtestSeg,
+  maxUDistGGtest,
+  maxUDistSegGSaprx
 ) where
 
 import PointsAndLines
 import Data.List
-import Debug.Trace
 
 type Polygon = [Point]
 
@@ -119,19 +123,19 @@ shortestSegmentGS :: Polygon -> LineSeg -> LineSeg
 shortestSegmentGS pts seg = foldl shorterSeg infSeg $ 
   map (shortestSegmentSS seg) (getSegments pts)
 
--- (helper) (approximation) D_{A,s} (max unsigned dist from a poly to a segment)
+-- (helper) (sampling) D_{A,s} (max unsigned dist from a poly to a segment)
 maxUDistSegGSaprx :: Polygon -> LineSeg -> LineSeg
 maxUDistSegGSaprx pts ((x1,y1), (x2,y2)) = let
-  density = dist (x1,y1) (x2,y2)
+  density = (dist (x1,y1) (x2,y2)) * 5
   stepx = (x2-x1) / density
   stepy = (y2-y1) / density
   indices = [0..density]
   samples = map (\i->(x1+i*stepx, y1+i*stepy)) indices
   in foldl longerSeg zeroSeg $ map (\p->(closestPointGP pts p, p)) samples
 
--- (helper) (exact) D_{A,s} (max unsigned dist from a poly to a segment)
-maxUDistSegGS :: Polygon -> LineSeg -> LineSeg
-maxUDistSegGS pts seg = let
+-- (helper) (sketchy) D_{A,s} (max unsigned dist from a poly to a segment)
+maxUDistSegGSbad :: Polygon -> LineSeg -> LineSeg
+maxUDistSegGSbad pts seg = let
   ((x1,y1), (x2,y2)) = seg
   boundary = getSegments pts
   pairs = concat $ map (\s->map (\t->(s,t)) boundary) boundary
@@ -142,6 +146,31 @@ maxUDistSegGS pts seg = let
   candidatePt = map (\rel -> (x1+rel*(x2-x1), y1+rel*(y2-y1))) candidatesRaw
   candidateSeg = map (\p->(p, closestPointGP pts p)) candidatePt
   in foldl longerSeg zeroSeg candidateSeg
+
+sqr = [(-1,0), (0,1), (1,0), (0,-1)] :: Polygon
+
+-- (helper) (exact) D_{A,s} (max unsigned dist from a poly to a segment)
+maxUDistSegGS :: Polygon -> LineSeg -> LineSeg
+maxUDistSegGS pts seg = let
+  (p1, p2) = seg
+  boundary = getSegments pts
+  pairs = concat $ map (\s->map (\t->(s,t)) boundary) boundary
+  -- candidates: polygon vertices
+  ixnorml = map (ixNorm seg) boundary
+  maybeCpsV = foldl (++) [] ixnorml
+  -- candidates: equidistant points
+  maybeCps = foldl (++) [] $ map (equiDistPts seg) pairs
+  f x = case x of Nothing -> False
+                  Just _ -> True
+  cps = map (\x->case x of Just p->p) $ filter f (maybeCps ++ maybeCpsV)
+  -- removes duplicates from cps
+  cpsNoDup = map head $ group $ sort cps
+  -- get two sets of candidate segments: involving / not involving vertices
+  swap f x y = f y x
+  -- candidatesOnV = map (swap longestSegmentSS seg) boundary
+  candidatesOnV = [(p1, closestPointGP pts p1), (p2, closestPointGP pts p2)]
+  candidatesOnE = map (\p->(p, closestPointGP pts p)) cpsNoDup
+  in foldl longerSeg zeroSeg $ candidatesOnV ++ candidatesOnE
 
 -- returns the shortest unsigned distance between a polygon and a segment
 shortestDistGS :: Polygon -> LineSeg -> Double
@@ -171,6 +200,18 @@ maxUDistGG pts1 pts2 = let
   (p1, p2) = maxUDistSegGG pts1 pts2
   in dist p1 p2
 
+-- gives D_{A,B} from sampling method
+maxUDistGGtest :: Polygon -> Polygon -> Double
+maxUDistGGtest pts1 pts2 = let
+  (p1, p2) = foldl longerSeg zeroSeg $ 
+    map (maxUDistSegGSaprx pts1) (getSegments pts2)
+  in dist p1 p2
+
+-- length of output is D_{A,B} from sampling method
+maxUDistGGtestSeg pts1 pts2 = foldl longerSeg zeroSeg $
+  map (maxUDistSegGSaprx pts1) (getSegments pts2)
+
+-- (helper) for cookiePoly
 cookieSeg :: Polygon -> LineSeg -> ([LineSeg], [LineSeg])
 cookieSeg pts (p1,p2) = let
   ixs = map (intersectionSS (p1,p2)) (getSegments pts)

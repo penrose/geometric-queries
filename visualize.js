@@ -17,11 +17,11 @@ var LEFT_MARGIN = 8;
 var BOTTOM_MARGIN = 16;
 var FUNC_LIST_WIDTH = 240;
 var TEXT_HEIGHT = 20;
-var SELECTION_START_HEIGHT = 300;
+var SELECTION_START_HEIGHT = 400;
 
 var HIGHLIGHT;
 
-//--------------
+//---------------------
 
 window.onload = function () {
   // functions to be tested
@@ -105,10 +105,64 @@ window.onload = function () {
         console.log('added: seg represents max signed distance');
         elems.push(res);
       }
+    }, {}, {
+      f: "maxUDistGGtestSeg",
+      str: 'max unsigned sampling ref',
+      render: (res)=>{
+        console.log('added: seg represents max unsigned distance');
+        elems.push(res);
+      }
+    }, {
+      f: "maxUDistSegGSaprx",
+      str: 'max u sampling ref <poly> <seg>',
+      render: (res)=>{
+        console.log('added: seg represents max unsigned distance');
+        elems.push(res);
+      }
     }
   ];
   document.getElementById('manual').onclick = manualAdd;
   
+}
+
+//--------- testing -----------
+
+var rangeLo = 200;
+var rangeHi = 600;
+
+// returns a random polygon of n sides, w coordinates in specified range
+function tester (n, lo, hi) {
+  var randPolys = [];
+  for (var i=0; i<n; i++) {
+    var pts = [];
+    var numV = Math.floor(lo + (hi-lo)*Math.random());
+    for (var j=0; j<numV; j++) {
+      var x = rangeLo + (rangeHi-rangeLo)*Math.random();
+      var y = rangeLo + (rangeHi-rangeLo)*Math.random();
+      pts.push([x,y]);
+    }
+    randPolys.push(pts);
+  }
+  // elems = elems.concat(randPolys);
+  return randPolys;
+}
+
+// test max unsigned dist against sampling for n times
+function maxU (n) {
+  var numTests = n;
+  var polys1 = tester (numTests, 3, 8);
+  var polys2 = tester (numTests, 3, 8);
+  for (var i=0; i<numTests; i++) {
+    var res = evaluate ("maxUDistGG", [polys1[i], polys2[i]]);
+    var ref = evaluate ("maxUDistGGtest", [polys1[i], polys2[i]]);
+    var diff = Math.abs(res-ref);
+    console.log(diff);
+    if (diff > 0.5) {
+      elems.push(polys1[i]);
+      elems.push(polys2[i]);
+      break;
+    }
+  }
 }
 
 //--------- utility -----------
@@ -126,7 +180,6 @@ function evaluate (exp, args) {
     },
     async: false
   })
-  window.scrollTo(0, 0);
   try {
     return eval(result.value);
   } catch (err) {
@@ -202,23 +255,57 @@ var sketch = function (p) {
     // render elements
     for(var i=0; i<elems.length; i++) {
       var e = elems[i];
+      var id = selections.indexOf(e);
+      var c = p.findCenter(e);
+      var label = String.fromCharCode(65 + id);
       if(e.length==1) {
         p.noStroke();
-        if(selections.indexOf(e)<0)p.fill(40); else p.fill(HIGHLIGHT);
+        if(id<0) p.fill(40); 
+        else {
+          p.noStroke();
+          p.fill(HIGHLIGHT);
+          p.text(label, c[0]+3, c[1]-5);
+        }
         p.ellipse(e[0][0], e[0][1], 6, 6); // point
       } else if(e.length==2) {
-        if(selections.indexOf(e)<0)p.stroke(40); else p.stroke(HIGHLIGHT);
+        if(selections.indexOf(e)<0) p.stroke(40); 
+        else {
+          p.fill(HIGHLIGHT);
+          p.noStroke();
+          p.text(label, c[0]+5, c[1]-5);
+          p.stroke(HIGHLIGHT);
+        }
         p.line(e[0][0],e[0][1],e[1][0],e[1][1]); //line
       } else {
+        if(id>=0)
+        {
+          p.noStroke();
+          p.fill(HIGHLIGHT);
+          p.text(label, c[0]-6, c[1]+5);
+        }
         p.beginShape();
         p.fill(0,50);
-        if(selections.indexOf(e)<0)p.stroke(40); else p.stroke(HIGHLIGHT);
+        if(id<0) p.stroke(40); 
+        else {
+          p.stroke(HIGHLIGHT);
+        }
         for(var j=0; j<e.length; j++) 
           p.vertex(e[j][0], e[j][1])
         p.endShape(p.CLOSE);
         p.fill(40);
       }
     }
+
+    p.findCenter = function(e) {
+      var sumx = 0; 
+      var sumy = 0;
+      for(var i=0; i<e.length; i++) {
+        sumx += e[i][0];
+        sumy += e[i][1];
+      }
+      return [sumx / e.length, sumy / e.length];
+    }
+
     // list the selected elements
     p.fill(40);
     p.noStroke();
