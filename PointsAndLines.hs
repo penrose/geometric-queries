@@ -6,13 +6,17 @@ module PointsAndLines (
   -- intersectionLL,
   -- isOnLine,
   longestSegmentSS,
+  isEndpoint,
   epsilon,
   infSeg,
   zeroSeg,
+  getT,
+  fromT,
   ----- exports -----
   Point,
   LineSeg,
   dist,
+  distsq,
   isOnLineSeg,
   closestPointPS,
   shortestDistPS,
@@ -126,6 +130,26 @@ isOnLineN (x, y) seg = let
   (u1, u2) = normalVec l
   d = offsetD l
   in abs (u1 * x + u2 * y + d) < epsilon
+
+-- (helper) given a pt, return t corresponding to its vert. proj. on segment xy.
+-- ONLY WORKS WHEN pt's PROJ IS ON xy
+getT :: LineSeg -> Point -> Double
+getT (x,y) pt = let
+  l = line (x,y)
+  nl = Line { slope = -1/(slope l), point = pt}
+  ix = case intersectionLL l nl of Just pt -> pt
+  in (dist x ix) / (dist x y)
+
+-- (helper) given t, return corresponding point on xy
+fromT :: LineSeg -> Double -> Point
+fromT ((x1,y1), (x2,y2)) t = let
+  dx = x2 - x1
+  dy = y2 - y1
+  in (x1+t*dx, y1+t*dy)
+
+-- returns distance squared bt. two points
+distsq :: Point -> Point -> Double
+distsq (x1, y1) (x2, y2) = (x2-x1)^2 + (y2-y1)^2
 
 -- returns the distance between two points
 dist :: Point -> Point -> Double

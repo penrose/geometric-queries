@@ -10,6 +10,7 @@ import Data.Aeson
 import Web.Scotty as S
 import PointsAndLines
 import Polygons
+import Gradients
 import Debug.Trace
 
 
@@ -60,7 +61,8 @@ eval func args = case func of
     outsidedness (parsePoly (args!!0)) (parsePt (args!!1))
   "shortestDistPS" -> show $ 
     shortestDistPS (parsePt (args!!0)) (parseSeg (args!!1))
-  -- below: functions to test
+
+  -- below: query functions to test
   "closestPointPS" -> strPt $
     closestPointPS (parsePt (args!!0)) (parseSeg (args!!1))
   "intersectionSS" -> strMaybePt $
@@ -83,6 +85,25 @@ eval func args = case func of
     minSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
   "maxSignedDistSegGG" -> strSeg $
     maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
+
+  -- below: grad functions
+  "graphDistPsiPSC" -> show $ 
+    graphDistPsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
+  "graphDist2PsiPSC" -> show $ 
+    graphDist2PsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2)) (parsePt (args!!3))
+  "movepPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
+    movepPS (parsePt (args!!0)) (parseSeg (args!!1))
+  "movexyPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
+    movexyPS (parsePt (args!!0)) (parseSeg (args!!1))
+  "rotxyPSTout" -> (\(a,b) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "]") $
+    rotxyPSTout (parsePt (args!!0)) (parseSeg (args!!1))
+  "rotxyPSCout" -> (\(a,b) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "]") $
+    rotxyPSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
+  "movepPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
+    movepPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
+  "movexyPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
+    movexyPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
+
   -- below: for test in js
   "maxUDistGG" -> show $
     maxUDistGG (parsePoly (args!!0)) (parsePoly (args!!1))

@@ -2,15 +2,25 @@
 //----------Global vars-----------
 var P;
 
-var funcs = [];
+var elems = [];
+var selections = [];
+var recording = false;
+var createMode = 0;
 var currentFuncIndex;
 var args = [];
 
-var elems = [];
-var selections = [];
+var mode = 1;
 
-var recording = false;
-var createMode = 0;
+// for testing individual queries
+var funcs = [];
+
+// for testing gradients
+var gradfuncs = [];
+var autostep = false;
+var stepCounter = 0;
+var MAX_STEPS = 500;
+
+var dgraph = [];
 
 //-------layout--------
 var LEFT_MARGIN = 8;
@@ -18,6 +28,8 @@ var BOTTOM_MARGIN = 16;
 var FUNC_LIST_WIDTH = 240;
 var TEXT_HEIGHT = 20;
 var SELECTION_START_HEIGHT = 400;
+var DIGITS = 2;
+var ucirc = false;
 
 var HIGHLIGHT;
 
@@ -96,6 +108,7 @@ window.onload = function () {
       str: 'max unsigned dist <poly> <poly>',
       render: (res)=>{
         console.log('added: seg reprensents max unsigned distance');
+        console.log('calc seg: ' + res);
         elems.push(res);
       }
     }, {
@@ -109,7 +122,7 @@ window.onload = function () {
       f: "maxUDistGGtestSeg",
       str: 'max unsigned sampling ref',
       render: (res)=>{
-        console.log('added: seg represents max unsigned distance');
+        console.log('ref seg: ' + res);
         elems.push(res);
       }
     }, {
@@ -121,11 +134,98 @@ window.onload = function () {
       }
     }
   ];
+
+  gradfuncs = [{
+      f: "movepPS",
+      epsilon: 1,
+      str: 'move p to decrease dist <pt> <seg>',
+      action: (res)=>{
+        pInd = selections[0];
+        elems[pInd][0][0] -= res[0];
+        elems[pInd][0][1] -= res[1];
+      }
+    }, {
+      f: "movexyPS",
+      epsilon: 1,
+      str: 'move xy to decrease dist <pt> <seg>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd][0][0] -= res[0];
+        elems[pInd][0][1] -= res[1];
+        elems[pInd][1][0] -= res[0];
+        elems[pInd][1][1] -= res[1];
+      }
+    }, {
+      f: "rotxyPSTout",
+      epsilon: 10,
+      str: 'rotate xy midpt to decrease dist <pt> <seg>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd][0][0] = res[0][0];
+        elems[pInd][0][1] = res[0][1];
+        elems[pInd][1][0] = res[1][0];
+        elems[pInd][1][1] = res[1][1];
+      }
+    }, {
+      f: "rotxyPSCout",
+      epsilon: 10,
+      str: 'rotate xy C to decrease dist <pt> <seg>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd][0][0] = res[0][0];
+        elems[pInd][0][1] = res[0][1];
+        elems[pInd][1][0] = res[1][0];
+        elems[pInd][1][1] = res[1][1];
+      }
+    }, {
+      f: "movepPSS",
+      epsilon: 1,
+      str: 'move p to decrease dist <pt> <seg> <seg>',
+      action: (res)=>{
+        pInd = selections[0];
+        elems[pInd][0][0] -= res[0];
+        elems[pInd][0][1] -= res[1];
+      }
+    }, {
+      f: "movexyPSS",
+      epsilon: 1,
+      str: 'move xy to decrease dist <pt> <seg> <seg>',
+      action: (res)=>{
+        pInd1 = selections[1];
+        pInd2 = selections[2];
+        elems[pInd1][0][0] -= res[0];
+        elems[pInd1][0][1] -= res[1];
+        elems[pInd1][1][0] -= res[0];
+        elems[pInd1][1][1] -= res[1];
+        elems[pInd2][0][0] -= res[0];
+        elems[pInd2][0][1] -= res[1];
+        elems[pInd2][1][0] -= res[0];
+        elems[pInd2][1][1] -= res[1];
+      }
+    }
+  ];
+
+
   document.getElementById('manual').onclick = manualAdd;
   
 }
 
-//--------- testing -----------
+//--------- test grad -------------
+
+function step() {
+  var [move, state] = evaluate (func.f, args);
+  console.log(state);
+  if (Math.abs(state) < func.epsilon || stepCounter >= MAX_STEPS) {
+    autostep = false; // need to generalize stoping condition
+    stepCounter = 0;
+    args = [];
+    return;
+  }
+  func.action (move);
+  stepCounter++;
+}
+
+//--------- test max unsigned -----------
 
 var rangeLo = 200;
 var rangeHi = 600;
@@ -157,12 +257,13 @@ function maxU (n) {
     var ref = evaluate ("maxUDistGGtest", [polys1[i], polys2[i]]);
     var diff = Math.abs(res-ref);
     console.log(diff);
-    if (diff > 0.5) {
+    if (diff > 0.5 || ref>res) {
       elems.push(polys1[i]);
       elems.push(polys2[i]);
       break;
     }
   }
+  return 'good.'
 }
 
 //--------- utility -----------
@@ -185,6 +286,10 @@ function evaluate (exp, args) {
   } catch (err) {
     return JSON.parse(result.value);
   }
+}
+
+function fix (n) {
+  return n.toFixed(DIGITS);
 }
 
 function doHttpGet(url, handler) {
@@ -229,6 +334,9 @@ var sketch = function (p) {
   p.draw = function(){
     p.background(240);
 
+    if (ucirc) p.ellipse(p.frameCount % p.width, 50, 10, 10);
+    p.showGraph();
+
     //draw the polygon in recording process
     p.beginShape();
     p.fill(255,100,100,100);
@@ -243,8 +351,8 @@ var sketch = function (p) {
       p.noStroke();
       p.ellipse(p.width-20, 20, 10, 10);
     }
-    // list functions
-    for(var i=0; i<funcs.length; i++) {
+    // list functions, when in query mode
+    if (mode==0) for(var i=0; i<funcs.length; i++) {
       p.noStroke();
       p.fill(40);
       p.text(funcs[i].str, LEFT_MARGIN, 16+i*TEXT_HEIGHT);
@@ -252,10 +360,19 @@ var sketch = function (p) {
       p.stroke(40);
       if(i==currentFuncIndex) p.rect(3,i*TEXT_HEIGHT+2,FUNC_LIST_WIDTH,20);
     }
+    // list grad functions, when in grad mode
+    if (mode==1) for(var i=0; i<gradfuncs.length; i++) {
+      p.noStroke();
+      p.fill(40);
+      p.text(gradfuncs[i].str, LEFT_MARGIN, 16+i*TEXT_HEIGHT);
+      p.noFill();
+      p.stroke(40);
+      if(i==currentFuncIndex) p.rect(3,i*TEXT_HEIGHT+2,FUNC_LIST_WIDTH,20);
+    }
     // render elements
     for(var i=0; i<elems.length; i++) {
       var e = elems[i];
-      var id = selections.indexOf(e);
+      var id = selections.indexOf(i);
       var c = p.findCenter(e);
       var label = String.fromCharCode(65 + id);
       if(e.length==1) {
@@ -268,7 +385,7 @@ var sketch = function (p) {
         }
         p.ellipse(e[0][0], e[0][1], 6, 6); // point
       } else if(e.length==2) {
-        if(selections.indexOf(e)<0) p.stroke(40); 
+        if(id<0) p.stroke(40); 
         else {
           p.fill(HIGHLIGHT);
           p.noStroke();
@@ -296,28 +413,18 @@ var sketch = function (p) {
       }
     }
 
-    p.findCenter = function(e) {
-      var sumx = 0; 
-      var sumy = 0;
-      for(var i=0; i<e.length; i++) {
-        sumx += e[i][0];
-        sumy += e[i][1];
-      }
-      return [sumx / e.length, sumy / e.length];
-    }
-
     // list the selected elements
     p.fill(40);
     p.noStroke();
     for(var i=0; i<selections.length; i++) {
-      var e = selections[i];
+      var e = elems[selections[i]];
       var x = LEFT_MARGIN;
       var y = SELECTION_START_HEIGHT+i*TEXT_HEIGHT;
       if(e.length==1) {
-        p.text('point ('+e[0][0]+', '+e[0][1]+')', x, y);
+        p.text('point ('+fix(e[0][0])+', '+fix(e[0][1])+')', x, y);
       } else if(e.length==2) {
-        p.text('segment ('+e[0][0]+', '+e[0][1]+') ('
-          +e[1][0]+', '+e[1][1]+')', x, y);
+        p.text('segment ('+fix(e[0][0])+', '+fix(e[0][1])+') ('
+          +fix(e[1][0])+', '+fix(e[1][1])+')', x, y);
       } else {
         p.text('polygon ('+e.length+' sides)', x, y);
       }
@@ -325,6 +432,20 @@ var sketch = function (p) {
     //show mouse coordinates
     p.text('mouse at: ('+p.mouseX+', '+p.mouseY+')', 
       LEFT_MARGIN, p.height-BOTTOM_MARGIN);
+
+    // auto step
+    if (autostep) step();
+  }
+
+  p.showGraph = function() {
+    p.stroke(180);
+    for (var i=0; i<dgraph.length; i++) {
+      var x = p.map(i,0,dgraph.length,0,p.width);
+      var y = p.map(dgraph[i],0,200,0,100);
+      p.point(x, p.height-y);
+    }
+    p.line(p.width/2,p.height-5,p.width/2,p.height);
+    p.noStroke();
   }
 
   p.stopRecording = function() {
@@ -333,10 +454,24 @@ var sketch = function (p) {
     p.tmpElem = [];
   }
 
+  p.findCenter = function(e) {
+    var sumx = 0; 
+    var sumy = 0;
+    for(var i=0; i<e.length; i++) {
+      sumx += e[i][0];
+      sumy += e[i][1];
+    }
+    return [sumx / e.length, sumy / e.length];
+  }
+
   p.mouseClicked = function() {
     if(p.oncanvas()){
-      if(p.mouseX < FUNC_LIST_WIDTH && p.mouseY < TEXT_HEIGHT*funcs.length) 
+      // detect click on function
+      if(mode==0 && p.mouseX < FUNC_LIST_WIDTH && p.mouseY < TEXT_HEIGHT*funcs.length) 
         currentFuncIndex = Math.floor((p.mouseY-2)/TEXT_HEIGHT);
+      else if(mode==1 && p.mouseX < FUNC_LIST_WIDTH && p.mouseY < TEXT_HEIGHT*gradfuncs.length) 
+        currentFuncIndex = Math.floor((p.mouseY-2)/TEXT_HEIGHT);
+      // clicks for making elems
       else if (recording ) {
         if(createMode == 1){ // point
           p.tmpElem = [[p.mouseX, p.mouseY]];
@@ -353,11 +488,11 @@ var sketch = function (p) {
       } else {
         for(var i=0; i<elems.length; i++) {
           if(p.isOnElem(elems[i])){
-            var ind = selections.indexOf(elems[i]);
+            var ind = selections.indexOf(i);
             if(ind>=0){
               selections.splice(ind,1);
             } else {
-              selections.push(elems[i]);
+              selections.push(i);
             }
           }
         }
@@ -392,14 +527,39 @@ var sketch = function (p) {
       } else if(p.key=='3') {
         recording = true;
         createMode = 3;
-      } else if(p.key=='0') {
-        args = selections;
+      } else if(mode==0 && p.key=='0') {
+        for (var i=0; i<selections.length; i++) {
+          args.push(elems[selections[i]]);
+        }
         func = funcs[currentFuncIndex];
         func.render(evaluate(func.f, args));
+        args = [];
+      } else if(mode==1 && p.key=='v') {
+        for (var i=0; i<selections.length; i++) {
+          args.push(elems[selections[i]]);
+        }
+        func = gradfuncs[currentFuncIndex];
+        step();
+        //func.action(evaluate(func.f, args));
+        args = [];
+      } else if (mode==1 && p.key=='b'){
+        func = gradfuncs[currentFuncIndex];
+        for (var i=0; i<selections.length; i++) {
+          args.push(elems[selections[i]]);
+        }
+        func = gradfuncs[currentFuncIndex];
+        autostep = true;
+      } else if(p.key=='g') {
+        for (var i=0; i<selections.length; i++) {
+          args.push(elems[selections[i]]);
+        }
+        if (args.length==3) dgraph = evaluate("graphDistPsiPSC", args);
+        else if (args.length==4) dgraph = evaluate("graphDist2PsiPSC", args);
+        args = [];
       } else if(p.key=='d') {
-        for(var i=0; i<selections.length; i++) {
-          var ind = elems.indexOf(selections[i]);
-          elems.splice(ind, 1);
+        selections.sort();
+        for(var i=selections.length-1; i>=0; i--) {
+          elems.splice(selections[i], 1);
         }
         selections = [];
       }

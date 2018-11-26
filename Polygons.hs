@@ -130,7 +130,8 @@ maxUDistSegGSaprx pts ((x1,y1), (x2,y2)) = let
   stepx = (x2-x1) / density
   stepy = (y2-y1) / density
   indices = [0..density]
-  samples = map (\i->(x1+i*stepx, y1+i*stepy)) indices
+  samplesRaw = map (\i->(x1+i*stepx, y1+i*stepy)) indices
+  samples = filter (\(x,_)->(x-x1)/(x2-x1)<=1) samplesRaw
   in foldl longerSeg zeroSeg $ map (\p->(closestPointGP pts p, p)) samples
 
 -- (helper) (sketchy) D_{A,s} (max unsigned dist from a poly to a segment)
