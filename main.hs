@@ -91,6 +91,14 @@ eval func args = case func of
     graphDistPsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
   "graphDist2PsiPSC" -> show $ 
     graphDist2PsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2)) (parsePt (args!!3))
+  "graphDistPsiPGC" -> show $
+    graphDistPsiPGC (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
+  "graphDistPsiSSC" -> show $
+    graphDistPsiSSC (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
+  "graphDistPsiSGC" -> show $
+    graphDistPsiSGC (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
+  "graphDistPsiGGC" -> show $
+    graphDistPsiGGC (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
   "movepPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
     movepPS (parsePt (args!!0)) (parseSeg (args!!1))
   "movexyPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
@@ -103,6 +111,16 @@ eval func args = case func of
     movepPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
   "movexyPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
     movexyPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
+  "rotxyPSSCout" -> (\((a1,a2),b)->"[["++(strSeg a1)++","++(strSeg a2)++"],"++(show b)++"]")$
+    rotxyPSSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2)) (parsePt (args!!3))
+  "rotbPGCout" -> (\(a,b) -> "["++(strPoly a)++","++(show b)++"]") $
+    rotbPGCout (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
+  "rotbSSCout" -> (\(a,b) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "]") $
+    rotbSSCout (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
+  "rotbSGCout" -> (\(a,b) -> "["++(strPoly a)++","++(show b)++"]") $
+    rotbSGCout (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
+  "rotbGGCout" -> (\(a,b) -> "["++(strPoly a)++","++(show b)++"]") $
+    rotbGGCout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
 
   -- below: for test in js
   "maxUDistGG" -> show $
@@ -134,6 +152,11 @@ strPt (x, y) = "[" ++ (show x) ++ "," ++ (show y) ++ "]"
 
 strSeg :: LineSeg -> String
 strSeg (p1, p2) = "[" ++ (strPt p1) ++ "," ++ (strPt p2) ++ "]"
+
+strPoly :: Polygon -> String
+strPoly poly = let
+  res = foldl (\a b->a++","++(strPt b)) (strPt $ poly!!0) (tail poly)
+  in "[" ++ res ++ "]"
 
 strMaybePt :: Maybe Point -> String
 strMaybePt mp = case mp of 

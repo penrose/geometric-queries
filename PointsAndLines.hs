@@ -19,6 +19,7 @@ module PointsAndLines (
   distsq,
   isOnLineSeg,
   closestPointPS,
+  closestPointSS,
   shortestDistPS,
   intersectionSS,
   shortestDistSS,
@@ -197,6 +198,20 @@ closestPointPS (x, y) ((x1, y1), (x2, y2)) = let
   d2 = dist (x,y) (x2,y2)
   in if isOnLineSeg (ix, iy) ((x1,y1), (x2,y2)) then (ix, iy) else
      if d1 < d2 then (x1, y1) else (x2, y2)
+
+-- returns pt on B closest to A
+closestPointSS :: LineSeg -> LineSeg -> Point
+closestPointSS segA segB = let
+  (p1, p2) = segA
+  (p3, p4) = segB
+  -- two points on B
+  cp1 = closestPointPS p1 (p3, p4)
+  cp2 = closestPointPS p2 (p3, p4)
+  closer seg a b = 
+    if shortestDistPS a seg < shortestDistPS b seg then a
+    else b
+  res = foldl (closer segA) p3 [p3, p4, cp1, cp2] 
+  in res
 
 -- * returns the closest distance between a point and a line segment
 shortestDistPS :: Point -> LineSeg -> Double

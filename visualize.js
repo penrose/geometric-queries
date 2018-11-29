@@ -25,7 +25,7 @@ var dgraph = [];
 //-------layout--------
 var LEFT_MARGIN = 8;
 var BOTTOM_MARGIN = 16;
-var FUNC_LIST_WIDTH = 240;
+var FUNC_LIST_WIDTH = 260;
 var TEXT_HEIGHT = 20;
 var SELECTION_START_HEIGHT = 400;
 var DIGITS = 2;
@@ -158,26 +158,20 @@ window.onload = function () {
     }, {
       f: "rotxyPSTout",
       epsilon: 10,
-      str: 'rotate xy midpt to decrease dist <pt> <seg>',
+      str: 'rotate xy around midpt <pt> <seg>',
       action: (res)=>{
         pInd = selections[1];
-        elems[pInd][0][0] = res[0][0];
-        elems[pInd][0][1] = res[0][1];
-        elems[pInd][1][0] = res[1][0];
-        elems[pInd][1][1] = res[1][1];
+        elems[pInd] = copyElem(res);
       }
     }, {
       f: "rotxyPSCout",
-      epsilon: 10,
-      str: 'rotate xy C to decrease dist <pt> <seg>',
+      epsilon: 0.1,
+      str: 'rotate xy around C <pt> <seg> <pt>',
       action: (res)=>{
         pInd = selections[1];
-        elems[pInd][0][0] = res[0][0];
-        elems[pInd][0][1] = res[0][1];
-        elems[pInd][1][0] = res[1][0];
-        elems[pInd][1][1] = res[1][1];
+        elems[pInd] = copyElem(res);
       }
-    }, {
+    }, {}, {
       f: "movepPSS",
       epsilon: 1,
       str: 'move p to decrease dist <pt> <seg> <seg>',
@@ -189,7 +183,7 @@ window.onload = function () {
     }, {
       f: "movexyPSS",
       epsilon: 1,
-      str: 'move xy to decrease dist <pt> <seg> <seg>',
+      str: 'move both segments <pt> <seg> <seg>',
       action: (res)=>{
         pInd1 = selections[1];
         pInd2 = selections[2];
@@ -202,6 +196,53 @@ window.onload = function () {
         elems[pInd2][1][0] -= res[0];
         elems[pInd2][1][1] -= res[1];
       }
+    }, {
+      f: "rotxyPSSCout",
+      epsilon: 1,
+      str: 'rotate both segments <pt> <seg> <seg> <pt>',
+      action: (res)=>{
+        // console.log(res);
+        pInd1 = selections[1];
+        pInd2 = selections[2];
+        elems[pInd1] = copyElem(res[0]);
+        elems[pInd2] = copyElem(res[1]);
+      }
+    }, {}, {
+      f: "rotbPGCout",
+      epsilon: 1,
+      str: 'rotate polygon <pt> <poly> <pt>',
+      action: (res)=>{
+        // console.log(res);
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
+      f: "rotbSSCout",
+      epsilon: 1,
+      str: 'rotate segment B <seg> <seg> <pt>',
+      action: (res)=>{
+        // console.log(res);
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
+      f: "rotbSGCout",
+      epsilon: 1,
+      str: 'rotate polygon <seg> <poly> <pt>',
+      action: (res)=>{
+        // console.log(res);
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
+      f: "rotbGGCout",
+      epsilon: 1,
+      str: 'rotate polygon <poly> <poly> <pt>',
+      action: (res)=>{
+        // console.log(res);
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
     }
   ];
 
@@ -213,6 +254,9 @@ window.onload = function () {
 //--------- test grad -------------
 
 function step() {
+  for (var i=0; i<selections.length; i++) {
+    args.push(elems[selections[i]]);
+  }
   var [move, state] = evaluate (func.f, args);
   console.log(state);
   if (Math.abs(state) < func.epsilon || stepCounter >= MAX_STEPS) {
@@ -223,6 +267,7 @@ function step() {
   }
   func.action (move);
   stepCounter++;
+  args = [];
 }
 
 //--------- test max unsigned -----------
@@ -267,6 +312,21 @@ function maxU (n) {
 }
 
 //--------- utility -----------
+
+function copySeg (src, dest) {
+  dest[0][0] = src[0][0];
+  dest[0][1] = src[0][1];
+  dest[1][0] = src[1][0];
+  dest[1][1] = src[1][1];
+}
+
+function copyElem (src) {
+  var dest = new Array(src.length);
+  for(var i=0; i<src.length; i++) {
+    dest[i] = [src[i][0], src[i][1]];
+  }
+  return dest;
+}
 
 function evaluate (exp, args) {
   var result;
@@ -441,7 +501,7 @@ var sketch = function (p) {
     p.stroke(180);
     for (var i=0; i<dgraph.length; i++) {
       var x = p.map(i,0,dgraph.length,0,p.width);
-      var y = p.map(dgraph[i],0,200,0,100);
+      var y = p.map(dgraph[i],0,60000,0,100);
       p.point(x, p.height-y);
     }
     p.line(p.width/2,p.height-5,p.width/2,p.height);
@@ -535,26 +595,32 @@ var sketch = function (p) {
         func.render(evaluate(func.f, args));
         args = [];
       } else if(mode==1 && p.key=='v') {
-        for (var i=0; i<selections.length; i++) {
-          args.push(elems[selections[i]]);
-        }
         func = gradfuncs[currentFuncIndex];
         step();
-        //func.action(evaluate(func.f, args));
-        args = [];
       } else if (mode==1 && p.key=='b'){
-        func = gradfuncs[currentFuncIndex];
-        for (var i=0; i<selections.length; i++) {
-          args.push(elems[selections[i]]);
-        }
         func = gradfuncs[currentFuncIndex];
         autostep = true;
       } else if(p.key=='g') {
         for (var i=0; i<selections.length; i++) {
           args.push(elems[selections[i]]);
         }
-        if (args.length==3) dgraph = evaluate("graphDistPsiPSC", args);
-        else if (args.length==4) dgraph = evaluate("graphDist2PsiPSC", args);
+        if (args.length==3 && args[2].length==1) { // _, _, pt
+          if (args[0].length==1) { // pt, _, pt
+            if (args[1].length==2)dgraph = evaluate("graphDistPsiPSC", args);
+            else if (args[1].length>2)dgraph = evaluate("graphDistPsiPGC", args);
+          } else if (args[0].length==2) { // seg, _, pt
+            if (args[1].length==2)
+              dgraph = evaluate("graphDistPsiSSC", args);
+            else if (args[1].length>2)
+              dgraph = evaluate("graphDistPsiSGC", args);
+          } else if (args[0].length>2) { // poly, _, pt
+              dgraph = evaluate("graphDistPsiGGC", args);
+          }
+        }
+        else if (args.length==4 && 
+            args[0].length==1 && args[1].length==2 &&
+            args[2].length==2 && args[3].length==1) // pt, seg, seg, pt
+              dgraph = evaluate("graphDist2PsiPSC", args);
         args = [];
       } else if(p.key=='d') {
         selections.sort();
@@ -562,6 +628,10 @@ var sketch = function (p) {
           elems.splice(selections[i], 1);
         }
         selections = [];
+      } else if (p.key=='z') {
+        autostep = false;
+        stepCounter = 0;
+        args = [];
       }
     }
   }

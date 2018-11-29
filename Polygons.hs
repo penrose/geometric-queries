@@ -5,6 +5,7 @@ module Polygons (
   ---- from this Polygons module ----
   Polygon,
   outsidedness,
+  getSegments,
   closestPointGP,
   signedDist,
   segIsInside,
