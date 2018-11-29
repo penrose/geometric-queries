@@ -1,6 +1,7 @@
 
 //----------Global vars-----------
 var P;
+var G;
 
 var elems = [];
 var selections = [];
@@ -10,6 +11,10 @@ var currentFuncIndex;
 var args = [];
 
 var mode = 1;
+// graph
+var graph = false;
+var dgraph = [];
+var graphMax = 0;
 
 // for testing individual queries
 var funcs = [];
@@ -19,8 +24,6 @@ var gradfuncs = [];
 var autostep = false;
 var stepCounter = 0;
 var MAX_STEPS = 500;
-
-var dgraph = [];
 
 //-------layout--------
 var LEFT_MARGIN = 8;
@@ -254,6 +257,7 @@ window.onload = function () {
 //--------- test grad -------------
 
 function step() {
+  if (graph) P.updateGraph();
   for (var i=0; i<selections.length; i++) {
     args.push(elems[selections[i]]);
   }
@@ -379,7 +383,7 @@ function manualAdd(){
 
 //-------------- visualization with p5 -----------------
 
-var sketch = function (p) {
+var visualization = function (p) {
 
   HIGHLIGHT = p.color(240, 100, 100);
   p.tmpElem = [];
@@ -395,7 +399,7 @@ var sketch = function (p) {
     p.background(240);
 
     if (ucirc) p.ellipse(p.frameCount % p.width, 50, 10, 10);
-    p.showGraph();
+    // p.showGraph();
 
     //draw the polygon in recording process
     p.beginShape();
@@ -497,17 +501,6 @@ var sketch = function (p) {
     if (autostep) step();
   }
 
-  p.showGraph = function() {
-    p.stroke(180);
-    for (var i=0; i<dgraph.length; i++) {
-      var x = p.map(i,0,dgraph.length,0,p.width);
-      var y = p.map(dgraph[i],0,60000,0,100);
-      p.point(x, p.height-y);
-    }
-    p.line(p.width/2,p.height-5,p.width/2,p.height);
-    p.noStroke();
-  }
-
   p.stopRecording = function() {
     elems.push(p.tmpElem);
     recording = false;
@@ -574,6 +567,30 @@ var sketch = function (p) {
     }
   }
 
+  p.updateGraph = function() {
+    for (var i=0; i<selections.length; i++) {
+      args.push(elems[selections[i]]);
+    }
+    if (args.length==3 && args[2].length==1) { // _, _, pt
+      if (args[0].length==1) { // pt, _, pt
+        if (args[1].length==2) [dgraph, graphMax] = evaluate("graphDistPsiPSC", args);
+        else if (args[1].length>2)[dgraph, graphMax] = evaluate("graphDistPsiPGC", args);
+      } else if (args[0].length==2) { // seg, _, pt
+        if (args[1].length==2)
+          [dgraph, graphMax] = evaluate("graphDistPsiSSC", args);
+        else if (args[1].length>2)
+          [dgraph, graphMax] = evaluate("graphDistPsiSGC", args);
+      } else if (args[0].length>2) { // poly, _, pt
+          [dgraph, graphMax] = evaluate("graphDistPsiGGC", args);
+      }
+    }
+    else if (args.length==4 && 
+        args[0].length==1 && args[1].length==2 &&
+        args[2].length==2 && args[3].length==1) // pt, seg, seg, pt
+          [dgraph, graphMax] = evaluate("graphDist2PsiPSC", args);
+    args = [];
+  }
+
   p.keyTyped = function() {
     if(p.oncanvas()){
       if(p.key=='c'){
@@ -600,27 +617,29 @@ var sketch = function (p) {
       } else if (mode==1 && p.key=='b'){
         func = gradfuncs[currentFuncIndex];
         autostep = true;
-      } else if(p.key=='g') {
+      } else if (mode==1 && p.key=='G') {
+        graph = !graph;
+      } else if(mode==1 && p.key=='g') {
         for (var i=0; i<selections.length; i++) {
           args.push(elems[selections[i]]);
         }
         if (args.length==3 && args[2].length==1) { // _, _, pt
           if (args[0].length==1) { // pt, _, pt
-            if (args[1].length==2)dgraph = evaluate("graphDistPsiPSC", args);
-            else if (args[1].length>2)dgraph = evaluate("graphDistPsiPGC", args);
+            if (args[1].length==2)[dgraph, graphMax] = evaluate("graphDistPsiPSC", args);
+            else if (args[1].length>2)[dgraph, graphMax] = evaluate("graphDistPsiPGC", args);
           } else if (args[0].length==2) { // seg, _, pt
             if (args[1].length==2)
-              dgraph = evaluate("graphDistPsiSSC", args);
+              [dgraph, graphMax] = evaluate("graphDistPsiSSC", args);
             else if (args[1].length>2)
-              dgraph = evaluate("graphDistPsiSGC", args);
+              [dgraph, graphMax] = evaluate("graphDistPsiSGC", args);
           } else if (args[0].length>2) { // poly, _, pt
-              dgraph = evaluate("graphDistPsiGGC", args);
+              [dgraph, graphMax] = evaluate("graphDistPsiGGC", args);
           }
         }
         else if (args.length==4 && 
             args[0].length==1 && args[1].length==2 &&
             args[2].length==2 && args[3].length==1) // pt, seg, seg, pt
-              dgraph = evaluate("graphDist2PsiPSC", args);
+              [dgraph, graphMax] = evaluate("graphDist2PsiPSC", args);
         args = [];
       } else if(p.key=='d') {
         selections.sort();
@@ -642,4 +661,39 @@ var sketch = function (p) {
 
 }
 
-P = new p5(sketch, 'canvas-container');
+P = new p5(visualization, 'canvas-container');
+
+var functionGraph = function (g) {
+  
+  HIGHLIGHT = g.color(240, 100, 100);
+
+  g.setup = function() {
+    g.createCanvas(800, 150);
+    g.frameRate(24);
+    g.noStroke();
+    g.fill(40);
+  }
+
+  g.draw = function() {
+    g.background(240);
+    g.showGraph();
+    if (graph) g.text("graphing..", LEFT_MARGIN, g.height-16);
+    else g.text("paused.", LEFT_MARGIN, g.height-16);
+    if (graphMax > 0) g.text ("max: " + fix(graphMax), LEFT_MARGIN, 16);
+  }
+
+  g.showGraph = function() {
+    g.stroke(180);
+    g.strokeWeight(2);
+    for (var i=0; i<dgraph.length; i++) {
+      var x = g.map(i,0,dgraph.length,0,g.width);
+      var y = g.map(dgraph[i], 0, graphMax, 0, g.height-10);
+      g.point(x, g.height-y);
+    }
+    g.line(g.width/2,g.height-5,g.width/2,g.height);
+    g.noStroke();
+  }
+
+}
+
+G = new p5(functionGraph, 'graph-container');

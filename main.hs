@@ -87,18 +87,19 @@ eval func args = case func of
     maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
 
   -- below: grad functions
-  "graphDistPsiPSC" -> show $ 
+  "graphDistPsiPSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $ 
     graphDistPsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
-  "graphDist2PsiPSC" -> show $ 
+  "graphDist2PsiPSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $ 
     graphDist2PsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2)) (parsePt (args!!3))
-  "graphDistPsiPGC" -> show $
+  "graphDistPsiPGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
     graphDistPsiPGC (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-  "graphDistPsiSSC" -> show $
+  "graphDistPsiSSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
     graphDistPsiSSC (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
-  "graphDistPsiSGC" -> show $
+  "graphDistPsiSGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
     graphDistPsiSGC (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-  "graphDistPsiGGC" -> show $
+  "graphDistPsiGGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
     graphDistPsiGGC (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
+
   "movepPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
     movepPS (parsePt (args!!0)) (parseSeg (args!!1))
   "movexyPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
