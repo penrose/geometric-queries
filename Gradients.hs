@@ -4,6 +4,7 @@ module Gradients (
   movexyPS,
   rotxyPSTout,
   rotxyPSCout,
+  scalexyPSCout,
   -- two segments
   movepPSS,
   movexyPSS,
@@ -22,13 +23,18 @@ module Gradients (
   graphDistPsiPGC,
   graphDistPsiSSC,
   graphDistPsiSGC,
-  graphDistPsiGGC
+  graphDistPsiGGC,
+  -- more graphing (scale)
+  scalePSgraph
 ) where
 
-import Numeric.AD
+-- import Numeric.AD
 import PointsAndLines
 import Polygons
 import Linesearch
+import Debug.Trace
+
+-- trc x = trace ("hi, 2x is " ++ ( show $ 2 * x)) 0
 
 type Vect = (Double, Double)
 type Angle = Double
@@ -130,31 +136,25 @@ rotxyPST pt xy t
         qp = dist pt q
   
 -- (output)
-rotxyPSCout :: Point -> LineSeg -> Point -> (LineSeg, Double)
-rotxyPSCout pt xy c = let
+rotxyPSCout :: Point -> LineSeg -> Point -> Angle -> (LineSeg, Double, Angle)
+rotxyPSCout pt xy c cumulative = let
   rotxy = rotateAroundPSa c xy
   f x = (distPS pt $ rotxy x)**2
   g x = rotxyPSC pt (rotxy x) c
-  psi = rotxyPSC pt xy c
-  stepDen = 20 * 10**4 -- maybe relate this to scale of elements can fix oscillation?
-  a = -psi/stepDen
-  xy' = rotateAroundPSa c xy (constrain (-0.05) 0.05 a)
-  in (xy', psi)
-
-a = (404.0,216.0)
-b = ((324.0,364.0), (527.0,319.0))
-c = (442.0,425.0)
+  psi = valof $ linesearch f g
+  xy' = rotateAroundPSa c xy psi
+  in (xy', if f 0 < epsilon then 0 else g 0, cumulative + psi)
 
 rotxyPSC :: Point -> LineSeg -> Point -> Angle
 rotxyPSC pt xy c
   | case1 = let 
       theta = a_xp - a_xc
-      in - (sin theta) * xc * xp
+      in - 2 * (sin theta) * xc * xp
   | case2 = let
       theta = -a_yp + a_yc
-      in - (sin theta) * yc * yp
-  | case3 = if qt < ct then qp * c'q else -qp * c'q
-  | case4 = if qt < ct then -qp * c'q else qp * c'q
+      in - 2 * (sin theta) * yc * yp
+  | case3 = if qt < ct then qp * c'q * 2 else -qp * c'q * 2
+  | case4 = if qt < ct then -qp * c'q * 2 else qp * c'q * 2
   where cs = segCase pt xy
         -- cases
         case1 = cs == 1
@@ -185,6 +185,109 @@ rotxyPSC pt xy c
         c' = fromT xy ct
         qp = dist pt q
         c'q = dist c' q
+
+scalexyPSCout :: Point -> LineSeg -> Point -> (LineSeg, Double)
+scalexyPSCout pt xy c = let 
+  scalexy x = scalePSk c xy (1+x)
+  f x = (distPS pt $ scalexy x)**2
+  g x = scalexyPSC pt (scalexy x) c
+  k = valof $ linesearch f g
+  xy' = scalePSk c xy (1+k)
+  in (xy', if f 0 < epsilon then 0 else g 0)
+
+-- for debugging
+a = (392.0,359.0) :: Point
+b = ((440.0,414.0), (580.0,269.0)) :: LineSeg
+c = (429.0,490.0) :: Point
+pt = a
+xy = b
+scalexy x = scalePSk c xy (1+x)
+f x = (distPS pt $ scalexy x)**2
+g x = scalexyPSC pt (scalexy x) c
+
+-- (output) for graphing debug
+scalePSgraph :: Point -> LineSeg -> ([Double], Double)
+scalePSgraph c xy = let
+  den = 100
+  scales = map (\i->2*i/den - 1) [0..(den-1)]
+  xys = map (\a -> scalePSk c xy (1-a)) scales
+  ss = map (\s -> (distPS pt s)**2) xys
+  in (ss, foldl max 0 ss)
+
+scalexyPSCold :: Point -> LineSeg -> Point -> Double
+scalexyPSCold pt xy c
+  | case1 = -2 * xp * xc * (cos $ thetap + thetac)
+  | case2 = scalexyPSCold pt (y,x) c
+  | case3 = if sdistPL c xy > 0 then 2*qp*bc else -2*qp*bc
+  | case4 = scalexyPSCold pt (y,x) c
+  where cs = segCase pt xy
+        -- cases
+        case1 = cs == 1
+        case2 = cs == 2
+        case3 = cs == 3
+        case4 = cs == 4
+        -- unwrap bindings
+        (x, y) = xy
+        ((x1,y1), (x2,y2)) = xy
+        (p1,p2) = pt
+        (c1,c2) = c
+        -- for case 1
+        a_xy = atan2 (y2-y1) (x2-x1) -- std angle
+        a_px = atan2 (y1-p2) (x1-p1)
+        thetap = a_px - a_xy
+        a_cx = atan2 (y1-c2) (c1-x1) -- forced positive?
+        thetac = a_xy + a_cx
+        xp = dist x pt
+        xc = dist x c
+        -- for case 3
+        qt = getT xy pt
+        q = fromT xy qt
+        bt = case segCase c xy of
+          1 -> 0
+          2 -> 1
+          _ -> getT xy c
+        b = fromT xy bt
+        qp = dist q pt
+        bc = dist b c
+
+scalexyPSC :: Point -> LineSeg -> Point -> Double
+scalexyPSC pt xy c
+  | case1 = 2 * xp * (sin thetaco) * 
+        ((cos thetap) * (cos thetac) / (sin thetac) + (sin thetap))
+  | case2 = scalexyPSC pt (y,x) c
+  | case3 = -2 * qp * (sin thetaco)
+  | case4 = scalexyPSC pt (y,x) c
+  where cs = segCase pt xy
+        -- cases
+        case1 = cs == 1
+        case2 = cs == 2
+        case3 = cs == 3
+        case4 = cs == 4
+        -- unwrap bindings
+        (x, y) = xy
+        ((x1,y1), (x2,y2)) = xy
+        (p1,p2) = pt
+        (c1,c2) = c
+        -- for case 1
+        a_xy = atan2 (y2-y1) (x2-x1) -- std angle
+        a_px = atan2 (y1-p2) (x1-p1)
+        thetap = a_px - a_xy
+        a_cx = atan2 (y1-c2) (c1-x1) -- forced positive?
+        thetac = a_xy + a_cx
+        (o1,o2) = midpt xy
+        a_co = atan2 (o2-c2) (c1-o1) -- forced pos
+        thetaco = a_xy + a_co
+        xp = dist x pt
+        -- for case 3
+        qt = getT xy pt
+        q = fromT xy qt
+        bt = case segCase c xy of
+          1 -> 0
+          2 -> 1
+          _ -> getT xy c
+        b = fromT xy bt
+        qp = dist q pt
+        bc = dist b c
 
 ---------- Below: a point and two segments (prep for polygons) ------------
 
@@ -231,13 +334,14 @@ rotbPGC pt poly c = let
     (polySegments!!0) polySegments
   in rotxyPSC pt closest c
 
-rotbPGCout :: Point -> Polygon -> Point -> (Polygon, Double)
-rotbPGCout pt poly c = let
-  psi = rotbPGC pt poly c
-  stepDen = 6 * 10**5
-  a = -psi/stepDen
-  poly' = rotateAroundPGa c poly (constrain (-0.05) 0.05 a)
-  in (poly', psi)
+rotbPGCout :: Point -> Polygon -> Point -> Angle -> (Polygon, Double, Angle)
+rotbPGCout pt poly c cumulative = let
+  rotpoly = rotateAroundPGa c poly
+  f x = (distPG pt $ rotpoly x)**2
+  g x = rotbPGC pt (rotpoly x) c
+  psi = valof $ linesearch f g
+  poly' = rotateAroundPGa c poly psi
+  in (poly', if f 0 < epsilon then 0 else g 0, cumulative + psi)
 
 ---------- Below: two segments ------------
 
@@ -247,13 +351,14 @@ rotbSSC segA segB c = let
   p = closestPointSS segB segA
   in rotxyPSC p segB c
 
-rotbSSCout :: LineSeg -> LineSeg -> Point -> (LineSeg, Double)
-rotbSSCout segA segB c = let
-  psi = rotbSSC segA segB c
-  stepDen = 6 * 10**5
-  a = -psi/stepDen
-  segB' = rotateAroundPSa c segB (constrain (-0.05) 0.05 a)
-  in (segB', psi)
+rotbSSCout :: LineSeg -> LineSeg -> Point -> Angle -> (LineSeg, Double, Angle)
+rotbSSCout segA segB c cumulative = let
+  rotB = rotateAroundPSa c segB
+  f x = (shortestDistSS segA $ rotB x)**2
+  g x = rotbSSC segA (rotB x) c
+  psi = valof $ linesearch f g
+  segB' = rotateAroundPSa c segB psi
+  in (segB', if f 0 < epsilon then 0 else g 0, cumulative + psi)
 
 ---------- Below: a segment and a polygon ------------
 
@@ -265,13 +370,14 @@ rotbSGC seg poly c = let
     else s2) (polySegments!!0) polySegments
   in rotbSSC seg closest c
 
-rotbSGCout :: LineSeg -> Polygon -> Point -> (Polygon, Double)
-rotbSGCout seg poly c = let
-  psi = rotbSGC seg poly c
-  stepDen = 6 * 10**5
-  a = -psi/stepDen
-  poly' = rotateAroundPGa c poly (constrain (-0.05) 0.05 a)
-  in (poly', psi)
+rotbSGCout :: LineSeg -> Polygon -> Point -> Angle -> (Polygon, Double, Angle)
+rotbSGCout seg poly c cumulative = let
+  rotpoly = rotateAroundPGa c poly
+  f x = (shortestDistGS (rotpoly x) seg)**2
+  g x = rotbSGC seg (rotpoly x) c
+  psi = valof $ linesearch f g
+  poly' = rotateAroundPGa c poly psi
+  in (poly', if f 0 < epsilon then 0 else g 0, cumulative + psi)
 
 ---------- Below: two polygons ------------
 
@@ -283,13 +389,14 @@ rotbGGC polyA polyB c = let
     else s2) (aSegments!!0) aSegments
   in rotbSGC closest2B polyB c
 
-rotbGGCout :: Polygon -> Polygon -> Point -> (Polygon, Double)
-rotbGGCout polyA polyB c = let
-  psi = rotbGGC polyA polyB c
-  stepDen = 6 * 10**5
-  a = -psi/stepDen
-  polyB' = rotateAroundPGa c polyB (constrain (-0.05) 0.05 a)
-  in (polyB', psi)
+rotbGGCout :: Polygon -> Polygon -> Point -> Angle -> (Polygon, Double, Angle)
+rotbGGCout polyA polyB c cumulative = let
+  rotpolyB = rotateAroundPGa c polyB
+  f x = (unsignedDistGG polyA $ rotpolyB x)**2
+  g x = rotbGGC polyA (rotpolyB x) c
+  psi = valof $ linesearch f g
+  polyB' = rotateAroundPGa c polyB psi
+  in (polyB', if f 0 < epsilon then 0 else g 0, cumulative + psi)
 
 ---------- Below: helpers (vector math, etc.) ------------
 
@@ -347,6 +454,10 @@ graphDistPsiGGC polyA polyB c = let
   ds = map (\g -> (unsignedDistGG g polyA)**2) polyBs
   in (ds, foldl max 0 ds)
 
+-- (helper) get value from a Maybe Double, default to 0
+valof x = case x of Nothing -> 0
+                    Just x -> x
+
 -- (helper) given an angle, returns its equiv. in range [0, 2*pi]
 wrap2pi :: Angle -> Angle
 wrap2pi theta = 
@@ -359,6 +470,8 @@ constrain lo hi val =
   if val<lo then lo else
   if val>hi then hi
   else val
+
+midpt ((x1,y1),(x2,y2)) = ( (x1+x2)/2, (y1+y2)/2 )
 
 -- (helper) gives negation of a vector
 neg :: Vect -> Vect
@@ -404,6 +517,21 @@ rotateAroundPPa (c1,c2) (p1,p2) psi = let
 
 rotateAroundPGa :: Point -> Polygon -> Angle -> Polygon
 rotateAroundPGa c poly psi = map (\p->rotateAroundPPa c p psi) poly
+
+scalePPk :: Point -> Point -> Double -> Point
+scalePPk (c1, c2) (p1, p2) k = (c1 + k*(p1-c1), c2 + k*(p2-c2))
+
+scalePSk :: Point -> LineSeg -> Double -> LineSeg
+scalePSk c (x, y) k = (scalePPk c x k, scalePPk c y k)
+
+scale2PSk :: Point -> LineSeg -> Double -> LineSeg
+scale2PSk c xy k = let 
+  mid = midpt xy
+  k' = k / (distPS c xy)
+  in scalePSk c xy (1+k')
+
+scalePGk :: Point -> Polygon -> Double -> Polygon
+scalePGk c poly k = map (\p -> scalePPk c p k) poly
 
 ------ below are just scratch code. Ignore for now...
 
