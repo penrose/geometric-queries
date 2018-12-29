@@ -51,6 +51,9 @@ c = 4
 -- Point represented as a tuple
 type Point = (Double, Double)
 
+eqPP :: Point -> Point -> Bool
+eqPP (x1,y1) (x2,y2) = (abs (x1-x2) < epsilon) && (abs (y1-y2) < epsilon)
+
 -- Vector represented as a tuple
 type Vector = (Double, Double)
 
@@ -133,13 +136,15 @@ isOnLineN (x, y) seg = let
   in abs (u1 * x + u2 * y + d) < epsilon
 
 -- (helper) given a pt, return t corresponding to its vert. proj. on segment xy.
--- ONLY WORKS WHEN pt's PROJ IS ON xy
 getT :: LineSeg -> Point -> Double
 getT (x,y) pt = let
   l = line (x,y)
   nl = Line { slope = -1/(slope l), point = pt}
   ix = case intersectionLL l nl of Just pt -> pt
-  in (dist x ix) / (dist x y)
+  cp = closestPointPS ix (x,y)
+  val = (dist x ix) / (dist x y)
+  res = if eqPP cp x then -val else val
+  in res
 
 -- (helper) given t, return corresponding point on xy
 fromT :: LineSeg -> Double -> Point

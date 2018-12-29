@@ -117,7 +117,10 @@ var visualization = function (p) {
     // auto step
     if (autostep) {
       step();
-      graphPos = p.width/2+p.map(cumulative, 0, Math.PI, 0, p.width/2);
+      var posRaw = graphType=="rot" ? 
+        WIDTH/2+p.map(cumulative, 0, Math.PI, 0, WIDTH/2) : 
+        WIDTH/2+p.map(cumulative, 1, 3, 0, WIDTH/2);
+      graphPos = graphType=="rot" ? posRaw % WIDTH : posRaw;
     }
   }
 
@@ -192,8 +195,7 @@ var visualization = function (p) {
       args.push(elems[selections[i]]);
     }
     if (args.length==3 && args[2].length==1) { // _, _, pt
-      if (p.key=='g' || p.key=='G') {
-          graphType = "rot";
+      if (graphType == "rot") {
           if (args[0].length==1) { // pt, _, pt
             if (args[1].length==2) [dgraph, graphMax] = evaluate("graphDistPsiPSC", args);
             else if (args[1].length>2)[dgraph, graphMax] = evaluate("graphDistPsiPGC", args);
@@ -205,10 +207,17 @@ var visualization = function (p) {
           } else if (args[0].length>2) { // poly, _, pt
               [dgraph, graphMax] = evaluate("graphDistPsiGGC", args);
           }
-      } else {
-          graphType = "scale";
+      } else if (graphType == "scale") {
           if (args[0].length==1) { // pt, _, pt
-            if (args[1].length==2) [dgraph, graphMax] = evaluate("scalePSgraph", args);
+            if (args[1].length==2) [dgraph, graphMax] = evaluate("scalegraphPSC", args);
+            else if (args[1].length>2)[dgraph, graphMax] = evaluate("scalegraphPGC", args);
+          } else if (args[0].length==2) { // seg, _, pt
+            if (args[1].length==2)
+              [dgraph, graphMax] = evaluate("scalegraphSSC", args);
+            else if (args[1].length>2)
+              [dgraph, graphMax] = evaluate("scalegraphSGC", args);
+          } else if (args[0].length>2) { // poly, _, pt
+              [dgraph, graphMax] = evaluate("scalegraphGGC", args);
           }
       }
     }
@@ -242,16 +251,27 @@ var visualization = function (p) {
       } else if(mode==1 && p.key=='v') {
         func = gradfuncs[currentFuncIndex];
         step();
-        var posRaw = WIDTH/2+p.map(cumulative, 0, Math.PI, 0, WIDTH/2);
+        var posRaw = graphType=="rot" ? 
+          WIDTH/2+p.map(cumulative, 0, Math.PI, 0, WIDTH/2) : 
+          WIDTH/2+p.map(cumulative, 1, 3, 0, WIDTH/2);
         graphPos = graphType=="rot" ? posRaw % WIDTH : posRaw;
       } else if (mode==1 && p.key=='b'){
         func = gradfuncs[currentFuncIndex];
         autostep = true;
-      } /*else if (mode==1 && p.key=='G') {
+      } else if (mode==1 && p.key=='z'){
+        console.log("manually stopped.");
+        autostep = false; // need to generalize stoping condition
+        stepCounter = 0;
+        terminated = true;
+        args = [];
+        args_orig = [];
+      }/*else if (mode==1 && p.key=='G') {
         graph = !graph;
       }*/ else if(mode==1 && p.key=='g' && terminated) {
+        graphType = "rot";
         p.updateGraph();
       } else if (mode==1 && p.key=='l' && terminated) {
+        graphType = "scale";
         p.updateGraph(); 
       } else if(p.key=='d') {
         selections.sort();

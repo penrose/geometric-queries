@@ -11,13 +11,17 @@ module Gradients (
   rotxyPSSCout,
   -- a point and a polygon
   rotbPGCout,
+  scalebPGCout,
   -- two segments (rotate B to get close to A)
   rotbSSCout,
+  scalebSSCout,
   -- a segment and a polygon
   rotbSGCout,
+  scalebSGCout,
   -- two polygons
   rotbGGCout,
-  -- graphing
+  scalebGGCout,
+  -- graphing (rotation)
   graphDistPsiPSC,
   graphDist2PsiPSC,
   graphDistPsiPGC,
@@ -25,10 +29,13 @@ module Gradients (
   graphDistPsiSGC,
   graphDistPsiGGC,
   -- more graphing (scale)
-  scalePSgraph
+  scalegraphPSC,
+  scalegraphPGC,
+  scalegraphSSC,
+  scalegraphSGC,
+  scalegraphGGC
 ) where
 
--- import Numeric.AD
 import PointsAndLines
 import Polygons
 import Linesearch
@@ -141,7 +148,7 @@ rotxyPSCout pt xy c cumulative = let
   rotxy = rotateAroundPSa c xy
   f x = (distPS pt $ rotxy x)**2
   g x = rotxyPSC pt (rotxy x) c
-  psi = valof $ linesearch f g
+  psi = valof $ linesearch f g 0
   xy' = rotateAroundPSa c xy psi
   in (xy', if f 0 < epsilon then 0 else g 0, cumulative + psi)
 
@@ -186,41 +193,32 @@ rotxyPSC pt xy c
         qp = dist pt q
         c'q = dist c' q
 
-scalexyPSCout :: Point -> LineSeg -> Point -> (LineSeg, Double)
-scalexyPSCout pt xy c = let 
-  scalexy x = scalePSk c xy (1+x)
-  f x = (distPS pt $ scalexy x)**2
-  g x = scalexyPSC pt (scalexy x) c
-  k = valof $ linesearch f g
-  xy' = scalePSk c xy (1+k)
-  in (xy', if f 0 < epsilon then 0 else g 0)
-
--- for debugging
-a = (392.0,359.0) :: Point
-b = ((440.0,414.0), (580.0,269.0)) :: LineSeg
-c = (429.0,490.0) :: Point
-pt = a
-xy = b
-scalexy x = scalePSk c xy (1+x)
-f x = (distPS pt $ scalexy x)**2
-g x = scalexyPSC pt (scalexy x) c
-
 -- (output) for graphing debug
-scalePSgraph :: Point -> LineSeg -> ([Double], Double)
-scalePSgraph c xy = let
+scalegraphPSC :: Point -> LineSeg -> Point -> ([Double], Double)
+scalegraphPSC pt xy c = let
   den = 100
-  scales = map (\i->2*i/den - 1) [0..(den-1)]
-  xys = map (\a -> scalePSk c xy (1-a)) scales
+  scales = map (\i->4*i/den - 1) [0..(den-1)] -- map to [-1,3], 1 in the middle
+  xys = map (\a -> scalePSk c xy a) scales
   ss = map (\s -> (distPS pt s)**2) xys
   in (ss, foldl max 0 ss)
 
-scalexyPSCold :: Point -> LineSeg -> Point -> Double
-scalexyPSCold pt xy c
-  | case1 = -2 * xp * xc * (cos $ thetap + thetac)
-  | case2 = scalexyPSCold pt (y,x) c
-  | case3 = if sdistPL c xy > 0 then 2*qp*bc else -2*qp*bc
-  | case4 = scalexyPSCold pt (y,x) c
-  where cs = segCase pt xy
+-- when called from visualizer, make sure xy is always the ORIGINAL xy.
+scalexyPSCout :: Point -> LineSeg -> Point -> Double -> (LineSeg, Double, Double)
+scalexyPSCout pt xy c cumulative = let 
+  scalexy = scalePSk c xy
+  f x = (distPS pt $ scalexy x)**2
+  g x = scalexyPSCk pt xy c x
+  k = valof $ linesearch f g cumulative
+  xy' = scalePSk c xy (cumulative + k)
+  in (xy', g (cumulative+k), cumulative + k)
+
+scalexyPSCk :: Point -> LineSeg -> Point -> Double -> Double
+scalexyPSCk pt xy c k
+  | case1 = -2 * xp * xc * (cos $ thetap + thetac) + 2 * (k-1) * (xc**2)
+  | case2 = scalexyPSCk pt (y,x) c k
+  | case3 = if sdistPL c xy > 0 then 2*qp*bc + 2*(k-1)*(bc**2) else -2*qp*bc + 2*(k-1)*(bc**2)
+  | case4 = scalexyPSCk pt (y,x) c k
+  where cs = segCase pt (scalePSk c xy k)
         -- cases
         case1 = cs == 1
         case2 = cs == 2
@@ -242,49 +240,7 @@ scalexyPSCold pt xy c
         -- for case 3
         qt = getT xy pt
         q = fromT xy qt
-        bt = case segCase c xy of
-          1 -> 0
-          2 -> 1
-          _ -> getT xy c
-        b = fromT xy bt
-        qp = dist q pt
-        bc = dist b c
-
-scalexyPSC :: Point -> LineSeg -> Point -> Double
-scalexyPSC pt xy c
-  | case1 = 2 * xp * (sin thetaco) * 
-        ((cos thetap) * (cos thetac) / (sin thetac) + (sin thetap))
-  | case2 = scalexyPSC pt (y,x) c
-  | case3 = -2 * qp * (sin thetaco)
-  | case4 = scalexyPSC pt (y,x) c
-  where cs = segCase pt xy
-        -- cases
-        case1 = cs == 1
-        case2 = cs == 2
-        case3 = cs == 3
-        case4 = cs == 4
-        -- unwrap bindings
-        (x, y) = xy
-        ((x1,y1), (x2,y2)) = xy
-        (p1,p2) = pt
-        (c1,c2) = c
-        -- for case 1
-        a_xy = atan2 (y2-y1) (x2-x1) -- std angle
-        a_px = atan2 (y1-p2) (x1-p1)
-        thetap = a_px - a_xy
-        a_cx = atan2 (y1-c2) (c1-x1) -- forced positive?
-        thetac = a_xy + a_cx
-        (o1,o2) = midpt xy
-        a_co = atan2 (o2-c2) (c1-o1) -- forced pos
-        thetaco = a_xy + a_co
-        xp = dist x pt
-        -- for case 3
-        qt = getT xy pt
-        q = fromT xy qt
-        bt = case segCase c xy of
-          1 -> 0
-          2 -> 1
-          _ -> getT xy c
+        bt = getT xy c
         b = fromT xy bt
         qp = dist q pt
         bc = dist b c
@@ -339,9 +295,34 @@ rotbPGCout pt poly c cumulative = let
   rotpoly = rotateAroundPGa c poly
   f x = (distPG pt $ rotpoly x)**2
   g x = rotbPGC pt (rotpoly x) c
-  psi = valof $ linesearch f g
+  psi = valof $ linesearch f g 0
   poly' = rotateAroundPGa c poly psi
   in (poly', if f 0 < epsilon then 0 else g 0, cumulative + psi)
+
+scalebPGCk :: Point -> Polygon -> Point -> Double -> Double
+scalebPGCk pt poly c k = let
+  polySegments = getSegments poly
+  closest = foldl (\s1 s2->if distPS pt s1 < distPS pt s2 then s1 else s2)
+    (polySegments!!0) polySegments
+  in scalexyPSCk pt closest c k
+  
+scalebPGCout :: Point -> Polygon -> Point -> Double -> (Polygon, Double, Double)
+scalebPGCout pt poly c cumulative = let 
+  scaleG = scalePGk c poly
+  f x = (distPG pt $ scaleG x)**2
+  g x = scalebPGCk pt poly c x
+  k = valof $ linesearch f g cumulative
+  poly' = scalePGk c poly (cumulative + k)
+  in (poly', g (cumulative+k), cumulative + k)
+
+-- (output) for graphing 
+scalegraphPGC :: Point -> Polygon -> Point -> ([Double], Double)
+scalegraphPGC pt poly c = let
+  den = 100
+  scales = map (\i->4*i/den - 1) [0..(den-1)] -- map to [-1,3], 1 in the middle
+  polys = map (\a -> scalePGk c poly a) scales
+  ss = map (\s -> (distPG pt s)**2) polys
+  in (ss, foldl max 0 ss)
 
 ---------- Below: two segments ------------
 
@@ -356,9 +337,34 @@ rotbSSCout segA segB c cumulative = let
   rotB = rotateAroundPSa c segB
   f x = (shortestDistSS segA $ rotB x)**2
   g x = rotbSSC segA (rotB x) c
-  psi = valof $ linesearch f g
+  psi = valof $ linesearch f g 0
   segB' = rotateAroundPSa c segB psi
   in (segB', if f 0 < epsilon then 0 else g 0, cumulative + psi)
+
+scalebSSCk :: LineSeg -> LineSeg -> Point -> Double -> Angle
+scalebSSCk segA segB c k = let
+  -- p is the point on A closest to B
+  segB' = scalePSk c segB k
+  p = closestPointSS segB' segA
+  in scalexyPSCk p segB c k
+
+scalebSSCout :: LineSeg -> LineSeg -> Point -> Double -> (LineSeg, Double, Double)
+scalebSSCout segA segB c cumulative = let 
+  scaleG = scalePSk c segB
+  f x = (shortestDistSS segA $ scaleG x)**2
+  g x = scalebSSCk segA segB c x
+  k = valof $ linesearch f g cumulative
+  segB' = scalePSk c segB (cumulative + k)
+  in (segB', if f (cumulative+k) < epsilon then 0 else g (cumulative+k), cumulative + k)
+
+-- (output) for graphing 
+scalegraphSSC :: LineSeg -> LineSeg -> Point -> ([Double], Double)
+scalegraphSSC segA segB c = let
+  den = 100
+  scales = map (\i->4*i/den - 1) [0..(den-1)] -- map to [-1,3], 1 in the middle
+  segBs = map (\a -> scalePSk c segB a) scales
+  ss = map (\s -> (shortestDistSS segA s)**2) segBs
+  in (ss, foldl max 0 ss)
 
 ---------- Below: a segment and a polygon ------------
 
@@ -375,9 +381,36 @@ rotbSGCout seg poly c cumulative = let
   rotpoly = rotateAroundPGa c poly
   f x = (shortestDistGS (rotpoly x) seg)**2
   g x = rotbSGC seg (rotpoly x) c
-  psi = valof $ linesearch f g
+  psi = valof $ linesearch f g 0
   poly' = rotateAroundPGa c poly psi
   in (poly', if f 0 < epsilon then 0 else g 0, cumulative + psi)
+
+scalebSGCk :: LineSeg -> Polygon -> Point -> Double -> Angle
+scalebSGCk seg poly c k = let
+  polySegments = getSegments poly
+  closest = foldl (\s1 s2 ->
+    if shortestDistSS seg s1 < shortestDistSS seg s2 then s1
+    else s2) (polySegments!!0) polySegments
+  --cp = closestPointSS closest seg 
+  in scalebSSCk seg closest c k
+
+scalebSGCout :: LineSeg -> Polygon -> Point -> Double -> (Polygon, Double, Double)
+scalebSGCout seg poly c cumulative = let 
+  scaleG = scalePGk c poly
+  f x = (shortestDistGS (scaleG x) seg)**2
+  g x = scalebSGCk seg poly c x
+  k = valof $ linesearch f g cumulative
+  poly' = scalePGk c poly (cumulative + k)
+  in (poly', if f (cumulative+k) < epsilon then 0 else g (cumulative+k), cumulative + k)
+
+-- (output) for graphing 
+scalegraphSGC :: LineSeg -> Polygon -> Point -> ([Double], Double)
+scalegraphSGC seg poly c = let
+  den = 100
+  scales = map (\i->4*i/den - 1) [0..(den-1)] -- map to [-1,3], 1 in the middle
+  polys = map (\a -> scalePGk c poly a) scales
+  ss = map (\s -> (shortestDistGS s seg)**2) polys
+  in (ss, foldl max 0 ss)
 
 ---------- Below: two polygons ------------
 
@@ -394,9 +427,35 @@ rotbGGCout polyA polyB c cumulative = let
   rotpolyB = rotateAroundPGa c polyB
   f x = (unsignedDistGG polyA $ rotpolyB x)**2
   g x = rotbGGC polyA (rotpolyB x) c
-  psi = valof $ linesearch f g
+  psi = valof $ linesearch f g 0
   polyB' = rotateAroundPGa c polyB psi
   in (polyB', if f 0 < epsilon then 0 else g 0, cumulative + psi)
+
+scalebGGCk :: Polygon -> Polygon -> Point -> Double -> Angle
+scalebGGCk polyA polyB c k = let
+  aSegments = getSegments polyA
+  closest2B = foldl (\s1 s2 ->
+    if shortestDistGS polyB s1 < shortestDistGS polyB s2 then s1
+    else s2) (aSegments!!0) aSegments
+  in scalebSGCk closest2B polyB c k
+
+scalebGGCout :: Polygon -> Polygon -> Point -> Double -> (Polygon, Double, Double)
+scalebGGCout polyA polyB c cumulative = let 
+  scaleG = scalePGk c polyB
+  f x = (unsignedDistGG polyA $ scaleG x)**2
+  g x = scalebGGCk polyA polyB c x
+  k = valof $ linesearch f g cumulative
+  polyB' = scalePGk c polyB (cumulative + k)
+  in (polyB', if f (cumulative+k) < epsilon then 0 else g (cumulative+k), cumulative + k)
+
+-- (output) for graphing 
+scalegraphGGC :: Polygon -> Polygon -> Point -> ([Double], Double)
+scalegraphGGC polyA polyB c = let
+  den = 100
+  scales = map (\i->4*i/den - 1) [0..(den-1)] -- map to [-1,3], 1 in the middle
+  polyBs = map (\a -> scalePGk c polyB a) scales
+  ss = map (\s -> (unsignedDistGG polyA s)**2) polyBs
+  in (ss, foldl max 0 ss)
 
 ---------- Below: helpers (vector math, etc.) ------------
 
@@ -532,41 +591,3 @@ scale2PSk c xy k = let
 
 scalePGk :: Point -> Polygon -> Double -> Polygon
 scalePGk c poly k = map (\p -> scalePPk c p k) poly
-
------- below are just scratch code. Ignore for now...
-
--- a few functions to see what ad does
-test [x] = tan x
-test1 [x] = 1/x
-test2 [x] = abs x
-test3 [x] = if x<0 then -x-1 else x+1
-test5 [x] = atan x
-
-distfunc p1 p2 x1 y1 x2 y2 = let
-  len = sqrt $ (y2-y1)**2 + (x2-x1)**2
-  (u1, u2) = (-(y2-y1)/len, (x2-x1)/len)
-  in abs $ u1 * (p1-x1) + u2 * (p2-y1)
-
-movexy p1 p2 x1 y1 x2 y2 [v1, v2] = let
-  x1' = x1 + v1
-  y1' = y1 + v2
-  x2' = x2 + v1
-  y2' = y2 + v2
-  in distfunc p1 p2 x1' y1' x2' y2'
-
-{- need Autofloat to compile. Not important yet
-test4 p1 p2 x1 y1 x2 y2 = let 
-  f = movexy p1 p2 x1 y1 x2 y2
-  in grad f [0, 0]
--}
-
-rotxyc p1 p2 x1 y1 x2 y2 c1 c2 [psi] = let
-  theta1 = atan $ (y1-c2)/(x1-c1)
-  theta2 = atan $ (y2-c2)/(x2-c1)
-  r1 = sqrt $ (x1-c1)**2 + (y1-c2)**2
-  r2 = sqrt $ (x2-c1)**2 + (y2-c2)**2
-  x1' = c1 + r1 * cos(theta1+psi)
-  y1' = c2 + r1 * sin(theta1+psi)
-  x2' = c1 + r2 * cos(theta2+psi)
-  y2' = c2 + r2 * sin(theta2+psi)
-  in distfunc p1 p2 x1' y1' x2' y2'

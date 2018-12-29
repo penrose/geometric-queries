@@ -27,6 +27,7 @@ var gradfuncs = [];
 var autostep = false;
 var stepCounter = 0;
 var terminated = true;
+var args_orig = [];
 var cumulative = 0;
 var MAX_STEPS = 500;
 
@@ -56,15 +57,26 @@ window.onload = function () {
 //--------- test grad -------------
 
 function step() {
-  if (graph) P.updateGraph();
-  for (var i=0; i<selections.length; i++) {
-    args.push(elems[selections[i]]);
-  }
+  // if (graph) P.updateGraph();
   if (terminated) { // first step, initialize cum and term
     terminated = false;
     if (func.type == 0) cumulative = 0;
-    else cumulative = 1;
+    else {
+      cumulative = 1;
+      args_orig = new Array(selections.length);
+      for(var i=0; i<selections.length; i++) {
+        args_orig[i] = copyElem(elems[selections[i]]);
+      }
+    }
   } 
+  if (func.type==0)
+    for (var i=0; i<selections.length; i++) {
+      args.push(elems[selections[i]]);
+    }
+  else 
+    for (var i=0; i<selections.length; i++) {
+      args.push(args_orig[i]);
+    }
   args.push([[cumulative]]);
   var [move, state, cum] = evaluate (func.f, args);
   cumulative = cum;
@@ -75,6 +87,7 @@ function step() {
     stepCounter = 0;
     terminated = true;
     args = [];
+    args_orig = [];
     return;
   }
   func.action (move);

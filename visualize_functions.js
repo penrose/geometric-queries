@@ -1,4 +1,5 @@
 var EPS = Math.pow(0.1, 8);
+var EPS4 = Math.pow(0.1, 4);
 
 var gradFuncsList = [{
       f: "movepPS",
@@ -30,7 +31,7 @@ var gradFuncsList = [{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
-    },*/ {
+    },*/ {}, {
       f: "rotxyPSCout",
       type: 0,
       epsilon: EPS,
@@ -39,16 +40,7 @@ var gradFuncsList = [{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
-    }, {
-      f: "scalexyPSCout",
-      type: 1,
-      epsilon: EPS,
-      str: 'scale xy around C <pt> <seg> <pt>',
-      action: (res)=>{
-        pInd = selections[1];
-        elems[pInd] = copyElem(res);
-      }
-    } ,/*{}, {
+    }, /*{}, {
       f: "movepPSS",
       epsilon: 0.01,
       str: 'move p to decrease dist <pt> <seg> <seg>',
@@ -84,7 +76,7 @@ var gradFuncsList = [{
         elems[pInd1] = copyElem(res[0]);
         elems[pInd2] = copyElem(res[1]);
       }
-    },*/ {}, {
+    },*/ {
       f: "rotbPGCout",
       type: 0,
       epsilon: EPS,
@@ -121,6 +113,51 @@ var gradFuncsList = [{
       str: 'rotate polygon <poly> <poly> <pt>',
       action: (res)=>{
         // console.log(res);
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {}, {
+      f: "scalexyPSCout",
+      type: 1,
+      epsilon: EPS4,
+      str: 'scale xy around C <pt> <seg> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
+      f: "scalebPGCout",
+      type: 1,
+      epsilon: EPS4,
+      str: 'scale poly around C <pt> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
+      f: "scalebSSCout",
+      type: 1,
+      epsilon: EPS4,
+      str: 'scale segment B around C <seg> <seg> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
+      f: "scalebSGCout",
+      type: 1,
+      epsilon: EPS4,
+      str: 'scale poly around C <seg> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
+      f: "scalebGGCout",
+      type: 1,
+      epsilon: EPS4,
+      str: 'scale poly around C <poly> <poly> <pt>',
+      action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
