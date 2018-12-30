@@ -80,6 +80,7 @@ function step() {
   args.push([[cumulative]]);
   var [move, state, cum] = evaluate (func.f, args);
   cumulative = cum;
+  func.action (move);
   console.log(state + ", " + cum);
   if (Math.abs(state) < func.epsilon || stepCounter >= MAX_STEPS) {
     console.log("stopped.");
@@ -90,7 +91,6 @@ function step() {
     args_orig = [];
     return;
   }
-  func.action (move);
   stepCounter++;
   args = [];
 }

@@ -271,6 +271,7 @@ var visualization = function (p) {
         graphType = "rot";
         p.updateGraph();
       } else if (mode==1 && p.key=='l' && terminated) {
+        graphPos = WIDTH/2;
         graphType = "scale";
         p.updateGraph(); 
       } else if(p.key=='d') {
@@ -312,8 +313,8 @@ var functionGraph = function (g) {
     g.stroke(40);
     g.line(graphPos,0,graphPos,g.height);
     g.noStroke();
-    g.text("ccw <--", g.width/2-52, 16);
-    g.text("--> cw", g.width/2+10, 16);
+    g.text("ccw, scale down <--", g.width/2-116, 16);
+    g.text("--> cw, scale up", g.width/2+10, 16);
     if (!terminated) g.text("optimizing..", LEFT_MARGIN, g.height-16);
     else g.text("stopped.", LEFT_MARGIN, g.height-16);
     if (graphMax > 0) g.text ("max: " + fix(graphMax), LEFT_MARGIN, 16);

@@ -216,7 +216,10 @@ scalexyPSCk :: Point -> LineSeg -> Point -> Double -> Double
 scalexyPSCk pt xy c k
   | case1 = -2 * xp * xc * (cos $ thetap + thetac) + 2 * (k-1) * (xc**2)
   | case2 = scalexyPSCk pt (y,x) c k
-  | case3 = if sdistPL c xy > 0 then 2*qp*bc + 2*(k-1)*(bc**2) else -2*qp*bc + 2*(k-1)*(bc**2)
+  | case3 = let 
+      res = if sdistPL c xy > 0 then 2*qp*bc + 2*(k-1)*(bc**2) 
+            else -2*qp*bc + 2*(k-1)*(bc**2)
+      in -2*qp*c2b + 2*(k-1)*(c2b**2)
   | case4 = scalexyPSCk pt (y,x) c k
   where cs = segCase pt (scalePSk c xy k)
         -- cases
@@ -244,6 +247,9 @@ scalexyPSCk pt xy c k
         b = fromT xy bt
         qp = dist q pt
         bc = dist b c
+        tmp = if sdistPL c xy < 0 && k >= 0 -- c opp. side to p
+            then bc else -bc
+        c2b = tmp
 
 ---------- Below: a point and two segments (prep for polygons) ------------
 

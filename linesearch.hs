@@ -11,14 +11,14 @@ import Debug.Trace
 epsilon = 0.1 ** 30
 betaInit = 1/0
 (k1, k2) = (0.1**4, 0.999)
-initialt = 0.1
+initialt = 0.12 -- avoids cumulative scale 0 (at which grad is not defined)
 
 maxLoop = 120
 
 -- input function to optimize and its gradient
 linesearch :: (Double -> Double) -> (Double -> Double) -> Double -> Maybe Double
-linesearch f g arg = if f arg < epsilon then Nothing -- TODO : this check shouldn't be in linesearch
-  else if g arg > 0 then trace "swap!" $ let -- swap at x = arg
+linesearch f g arg = if f arg < epsilon then trace ("alr satisfied. ") Nothing -- TODO : this check shouldn't be in linesearch
+  else if g arg > 0 then let -- swap at x = arg
   f' x = f (2*arg-x)
   g' x = - (g (2*arg-x))
   -- if grad is positive, swap the function
@@ -27,7 +27,7 @@ linesearch f g arg = if f arg < epsilon then Nothing -- TODO : this check should
                  Just x -> Just (-x)
   else let
   -- loop part
-  searchLoop alpha beta t counter = if counter > maxLoop then trace "nothing" Nothing
+  searchLoop alpha beta t counter = if counter > maxLoop then trace "reached max loop count" Nothing
   else let 
     f0 = f arg
     g0 = g arg
@@ -39,7 +39,7 @@ linesearch f g arg = if f arg < epsilon then Nothing -- TODO : this check should
       then (alpha, t) else
       if wolfeL g0 g1 k2
       then (t, beta) else (t, t)
-    in if beta'-alpha' < epsilon then trace 
+    in trace ("range: "++(show alpha')++", "++(show beta')) $ if beta'-alpha' < epsilon then trace 
          ("finished in steps: "++(show counter)++"\nresult step: "++(show alpha')) 
          Just alpha' --end condition: range small enough
        else if beta' < betaInit then searchLoop alpha' beta' ((beta'+alpha')/2) (counter+1)
