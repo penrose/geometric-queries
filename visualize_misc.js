@@ -28,7 +28,7 @@ var autostep = false;
 var stepCounter = 0;
 var terminated = true;
 var args_orig = [];
-var cumulative = 0;
+var cumulative = [0];
 var MAX_STEPS = 500;
 
 //-------layout--------
@@ -58,18 +58,22 @@ window.onload = function () {
 
 function step() {
   // if (graph) P.updateGraph();
+  [type, dim] = func.type;
   if (terminated) { // first step, initialize cum and term
     terminated = false;
-    if (func.type == 0) cumulative = 0;
+    if (type == 0) {
+      if (dim==1) cumulative = [0];
+      else cumulative = [0,0];
+    }
     else {
-      cumulative = 1;
+      cumulative = [1]; // scaling. dim is 1 for sure
       args_orig = new Array(selections.length);
       for(var i=0; i<selections.length; i++) {
         args_orig[i] = copyElem(elems[selections[i]]);
       }
     }
   } 
-  if (func.type==0)
+  if (type==0)
     for (var i=0; i<selections.length; i++) {
       args.push(elems[selections[i]]);
     }
@@ -77,7 +81,7 @@ function step() {
     for (var i=0; i<selections.length; i++) {
       args.push(args_orig[i]);
     }
-  args.push([[cumulative]]);
+  args.push([cumulative]);
   var [move, state, cum] = evaluate (func.f, args);
   cumulative = cum;
   func.action (move);

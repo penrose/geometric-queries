@@ -1,9 +1,9 @@
 var EPS = Math.pow(0.1, 8);
 var EPS4 = Math.pow(0.1, 4);
 
-var gradFuncsList = [{
+var gradFuncsList = [/*{
       f: "movepPS",
-      type: 0,
+      type: [0,2],
       epsilon: 0.01,
       str: 'move p to decrease dist <pt> <seg>',
       action: (res)=>{
@@ -11,17 +11,14 @@ var gradFuncsList = [{
         elems[pInd][0][0] -= res[0];
         elems[pInd][0][1] -= res[1];
       }
-    }, {
-      f: "movexyPS",
-      type: 0,
-      epsilon: 0.01,
+    }, */{
+      f: "movexyPSout",
+      type: [0,2],
+      epsilon: EPS,
       str: 'move xy to decrease dist <pt> <seg>',
       action: (res)=>{
         pInd = selections[1];
-        elems[pInd][0][0] -= res[0];
-        elems[pInd][0][1] -= res[1];
-        elems[pInd][1][0] -= res[0];
-        elems[pInd][1][1] -= res[1];
+        elems[pInd] = copyElem(res);
       }
     }, /*{
       f: "rotxyPSTout",
@@ -33,7 +30,7 @@ var gradFuncsList = [{
       }
     },*/ {}, {
       f: "rotxyPSCout",
-      type: 0,
+      type: [0,1],
       epsilon: EPS,
       str: 'rotate xy around C <pt> <seg> <pt>',
       action: (res)=>{
@@ -78,7 +75,7 @@ var gradFuncsList = [{
       }
     },*/ {
       f: "rotbPGCout",
-      type: 0,
+      type: [0,1],
       epsilon: EPS,
       str: 'rotate polygon <pt> <poly> <pt>',
       action: (res)=>{
@@ -88,7 +85,7 @@ var gradFuncsList = [{
       }
     }, {
       f: "rotbSSCout",
-      type: 0,
+      type: [0,1],
       epsilon: EPS,
       str: 'rotate segment B <seg> <seg> <pt>',
       action: (res)=>{
@@ -98,7 +95,7 @@ var gradFuncsList = [{
       }
     }, {
       f: "rotbSGCout",
-      type: 0,
+      type: [0,1],
       epsilon: EPS,
       str: 'rotate polygon <seg> <poly> <pt>',
       action: (res)=>{
@@ -108,7 +105,7 @@ var gradFuncsList = [{
       }
     }, {
       f: "rotbGGCout",
-      type: 0,
+      type: [0,1],
       epsilon: EPS,
       str: 'rotate polygon <poly> <poly> <pt>',
       action: (res)=>{
@@ -118,7 +115,7 @@ var gradFuncsList = [{
       }
     }, {}, {
       f: "scalexyPSCout",
-      type: 1,
+      type: [1,1],
       epsilon: EPS4,
       str: 'scale xy around C <pt> <seg> <pt>',
       action: (res)=>{
@@ -127,7 +124,7 @@ var gradFuncsList = [{
       }
     }, {
       f: "scalebPGCout",
-      type: 1,
+      type: [1,1],
       epsilon: EPS4,
       str: 'scale poly around C <pt> <poly> <pt>',
       action: (res)=>{
@@ -136,7 +133,7 @@ var gradFuncsList = [{
       }
     }, {
       f: "scalebSSCout",
-      type: 1,
+      type: [1,1],
       epsilon: EPS4,
       str: 'scale segment B around C <seg> <seg> <pt>',
       action: (res)=>{
@@ -145,7 +142,7 @@ var gradFuncsList = [{
       }
     }, {
       f: "scalebSGCout",
-      type: 1,
+      type: [1,1],
       epsilon: EPS4,
       str: 'scale poly around C <seg> <poly> <pt>',
       action: (res)=>{
@@ -154,7 +151,7 @@ var gradFuncsList = [{
       }
     }, {
       f: "scalebGGCout",
-      type: 1,
+      type: [1,1],
       epsilon: EPS4,
       str: 'scale poly around C <poly> <poly> <pt>',
       action: (res)=>{
@@ -235,7 +232,7 @@ var queryFuncsList = [{
       str: 'max unsigned dist <poly> <poly>',
       render: (res)=>{
         console.log('added: seg reprensents max unsigned distance');
-        console.log('calc seg: ' + res);
+        //console.log('calc seg: ' + res);
         elems.push(res);
       }
     }, {

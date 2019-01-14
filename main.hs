@@ -110,10 +110,14 @@ eval func args = case func of
   "scalegraphGGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
     scalegraphGGC (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
 
+  {-
   "movepPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
     movepPS (parsePt (args!!0)) (parseSeg (args!!1))
   "movexyPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
     movexyPS (parsePt (args!!0)) (parseSeg (args!!1))
+  -}
+  "movexyPSout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "," ++ (strPt c) ++ "]") $
+    movexyPSout (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
   "movepPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
     movepPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
   "movexyPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
@@ -121,28 +125,28 @@ eval func args = case func of
 
   "rotxyPSTout" -> (\(a,b) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "]") $
     rotxyPSTout (parsePt (args!!0)) (parseSeg (args!!1))
-  "rotxyPSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+  "rotxyPSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     rotxyPSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
   "rotxyPSSCout" -> (\((a1,a2),b)->"[["++(strSeg a1)++","++(strSeg a2)++"],"++(show b)++"]")$
     rotxyPSSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2)) (parsePt (args!!3))
-  "rotbPGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ "," ++(show c)++"]") $
+  "rotbPGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ ",[" ++(show c)++"]]") $
     rotbPGCout (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "rotbSSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+  "rotbSSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     rotbSSCout (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "rotbSGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ "," ++(show c)++"]") $
+  "rotbSGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ ",[" ++(show c)++"]]") $
     rotbSGCout (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "rotbGGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ "," ++(show c)++"]") $
+  "rotbGGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ ",[" ++(show c)++"]]") $
     rotbGGCout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
 
-  "scalexyPSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+  "scalexyPSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     scalexyPSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebPGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+  "scalebPGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     scalebPGCout (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebSSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+  "scalebSSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     scalebSSCout (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebSGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+  "scalebSGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     scalebSGCout (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebGGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+  "scalebGGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     scalebGGCout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
 
   -- below: for test in js

@@ -24,7 +24,6 @@ module PointsAndLines (
   intersectionSS,
   shortestDistSS,
   shortestSegmentSS,
-  mudCandRel,
   ixNorm,
   equiDistPts
 ) where
@@ -294,80 +293,6 @@ shortestDistSS seg1 seg2 = let
   (p1, p2) = shortestSegmentSS seg1 seg2
   in dist p1 p2
 
--------- (deprecated) sketchy, maybe incorrect sol for max unsigned --------
-
-exist x = case x of
-  Nothing -> False
-  Just _ -> True
-
--- (helper) gives a piecewise function of dist of pts on seg1 to seg2
--- and x coords (in range 0 to 1) of all critical points on it
-distfunc :: LineSeg -> LineSeg -> ([LineSeg], [Double])
-distfunc (p1, p2) (p3, p4) = let
-  -- line containing seg1
-  l1 = line (p1, p2)
-  -- normal of seg2 passing through p3
-  l2_1 = normalLine $ line (p3, p4)
-  -- normal of seg2 passing through p4
-  l2_2 = normalLine $ line (p4, p3)
-  -- below: two (maybe) ixs of normals of seg2 with line that contains seg1
-  ixl_1 = intersectionLL l1 l2_1
-  ixl_2 = intersectionLL l1 l2_2
-  -- below: two (maybe) ixs of normals of seg2 with seg1
-  ix_1 = case ixl_1 of
-    Nothing -> Nothing
-    Just p -> if isOnLineSeg p (p1, p2) then Just p else Nothing
-  ix_2 = case ixl_2 of
-    Nothing -> Nothing
-    Just p -> if isOnLineSeg p (p1, p2) then Just p else Nothing
-  -- below: (maybe) inflection critical pt
-  ix_3 = let 
-    n1 = Line { slope = -1 / (slope l1), point = p3 }
-    n2 = Line { slope = slope n1, point = p4 }
-    ix3_1 = case intersectionLL l1 n1 of Just p -> p
-    ix3_2 = case intersectionLL l1 n2 of Just p -> p
-    d1 = dist p3 ix3_1
-    d2 = dist p4 ix3_2
-    in if d1 < d2 
-      then (if isOnLineSeg ix3_1 (p1, p2) then Just ix3_1 else Nothing)
-      else (if isOnLineSeg ix3_2 (p1, p2) then Just ix3_2 else Nothing)
-  -- get list of cps
-  f mp = case mp of
-    Nothing -> False
-    Just _ -> True
-  cmp q1 q2 = compare (dist p1 q1) (dist p1 q2)
-  cps = sortBy cmp $ map (\x -> case x of Just y -> y) $ filter f
-    [Just p1, Just p2, ix_1, ix_2, ix_3]
-  -- get relative positions of each cp (x)
-  len = dist p1 p2
-  cprel = map (\cp -> (dist p1 cp) / len) cps
-  -- get dist to seg2 of each cp (y)
-  cpdist = map (\cp -> shortestDistPS cp (p3, p4)) cps
-  in (filter (\(a, b) -> dist a b > epsilon) $
-    map (\i->((cprel!!i,cpdist!!(i)), (cprel!!(i-1),cpdist!!(i-1))))
-    [1..((length cps)-1)], cprel)
-
-s1 = ((334,300),(463,371)) :: LineSeg
-s2 = ((463,371),(564,303)) :: LineSeg
-s = ((393,302),(507,302)) :: LineSeg
-
-mudCandRel :: LineSeg -> (LineSeg, LineSeg) -> [Double]
-mudCandRel seg (seg1, seg2) = let
-  ((x1,y1),(x2,y2)) = seg
-  -- get ix pts of two dist funcs
-  (func1, cps1) = distfunc seg seg1
-  (func2, cps2) = distfunc seg seg2
-  pairs = concat $ map (\s->map (\t->(s,t)) func2) func1
-  ixs = map (\x->case x of Just (a,b) -> a) $
-    filter exist $
-    map (\(s1,s2)->intersectionSS s1 s2) pairs
-  -- get relative pos of candidate pts for max unsigned dist
-  cpsrel = concat [cps1, cps2, ixs]
-  cmp (x1,_) (x2,_) = compare x1 x2
-  eq (x1,_) (x2,_) = abs (x1-x2) < epsilon
-  cpsrelNoDup = map head $ group $ sort cpsrel
-  in cpsrelNoDup
-
 
 -------------- Keenan's way for max unsigned --------------
 
@@ -378,11 +303,6 @@ isEndpoint :: Point -> LineSeg -> Bool
 isEndpoint (x1, y1) ((x2, y2), (x3, y3)) =
   (abs(x2-x1)<epsilon && abs(y2-y1)<epsilon) ||
   (abs(x3-x1)<epsilon && abs(y3-y1)<epsilon)
-
-tsb = ((404,320),(500,361)) :: LineSeg
-tsa1 = ((387,392),(528,399)) :: LineSeg
-tsa2 = ((528,399),(408,473)) :: LineSeg
-tsa3 = ((408,473),(387,392)) :: LineSeg
 
 -- solves for *possible* equidistant points on seg b to two segments a1, a2
 -- by checking: 

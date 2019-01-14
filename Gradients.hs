@@ -1,7 +1,8 @@
 module Gradients (
   -- one segment
   movepPS,
-  movexyPS,
+  -- movexyPS,
+  movexyPSout,
   rotxyPSTout,
   rotxyPSCout,
   scalexyPSCout,
@@ -75,10 +76,30 @@ movepPS p (x,y) = let
   3 -> (scale (1/stepDen) $ scale d $ segN (x,y), d)
   4 -> (scale (1/stepDen) $ scale d $ neg $ segN (x,y), d)
 
--- (output)
-movexyPS :: Point -> LineSeg -> (Vect, Double)
-movexyPS p (x,y) = let (res, d) = movepPS p (x,y)
-  in (neg res, d)
+-- dummy. To be deleted 
+movexyPS p xy = (0,0)
+
+-- (output) gives (new xy, mag. of gradient, cumul. disp. from original)
+movexyPSout :: Point -> LineSeg -> Vect -> (LineSeg, Double, Vect)
+movexyPSout p xy cumulative = let
+  (cum1,cum2) = cumulative
+  movexyBy = movebySm xy
+  f [m1,m2] = (distPS p (movexyBy (m1,m2)))**2 --Double
+  g [m1,m2] = let 
+    (res1,res2) = movexyPSm p xy (m1,m2) -- [Double] (der. along search dir) 
+    in [res1,res2]
+  (dir1,dir2) = neg $ normalize $ let [r1,r2] = g [0,0] in (r1,r2)
+  [d1,d2] = valof2 $ linesearch' f g [dir1,dir2] [0,0] --replace w linesearch result
+  delt = (d1,d2)
+  xy' = movexyBy delt
+  g0 = let [x1,x2] = g [0,0] in mag (x1,x2)
+  in (xy', if f [0,0] < epsilon then 0 else g0, add cumulative delt)
+
+movexyPSm :: Point -> LineSeg -> Vect -> Vect
+movexyPSm (p1,p2) ((x1,y1),(x2,y2)) (mx,my) = let
+  xy' = ((x1+mx, y1+my), (x2+mx, y2+my))
+  (cpx,cpy) = closestPointPS (p1,p2) xy'
+  in (2*(cpx-p1), 2*(cpy-p2))
 
 -- (output) given p and xy, gives next state & grad (for conv check)
 rotxyPSTout :: Point -> LineSeg -> (LineSeg, Double)
@@ -90,13 +111,14 @@ rotxyPSTout pt xy = let
   xy' = rotateAroundPSa (fromT xy ct) xy (constrain (-0.05) 0.05 a)
   in (xy', psi)
 
+-- automatically finds some rotation center (that maximizes change in dist)
 maxRotCentPS :: Point -> LineSeg -> Double
 maxRotCentPS pt xy = let
   closest = closestPointPS pt xy
   qt = getT xy closest
   in if qt<0.5 then 1 else 0
 
--- calculates const * grad of change in dist from p to xy wrt.
+-- calculates grad of change in dist from p to xy wrt.
 -- rotation of xy around c corresponding to given t
 rotxyPST :: Point -> LineSeg -> Double -> Angle
 rotxyPST pt xy t
@@ -142,16 +164,18 @@ rotxyPST pt xy t
         cq = dist c q
         qp = dist pt q
   
--- (output)
+-- (output) note that input from vis is the transformed xy bc rot is type 0
 rotxyPSCout :: Point -> LineSeg -> Point -> Angle -> (LineSeg, Double, Angle)
 rotxyPSCout pt xy c cumulative = let
   rotxy = rotateAroundPSa c xy
   f x = (distPS pt $ rotxy x)**2
+  -- want grad at rotation x: rot segment by x then get grad at 0
   g x = rotxyPSC pt (rotxy x) c
   psi = valof $ linesearch f g 0
   xy' = rotateAroundPSa c xy psi
   in (xy', if f 0 < epsilon then 0 else g 0, cumulative + psi)
 
+-- returns gradient at rotation angle 0
 rotxyPSC :: Point -> LineSeg -> Point -> Angle
 rotxyPSC pt xy c
   | case1 = let 
@@ -308,18 +332,24 @@ rotbPGCout pt poly c cumulative = let
 scalebPGCk :: Point -> Polygon -> Point -> Double -> Double
 scalebPGCk pt poly c k = let
   polySegments = getSegments poly
-  closest = foldl (\s1 s2->if distPS pt s1 < distPS pt s2 then s1 else s2)
+  scaleS s = scalePSk c s k
+  closest = foldl (\s1 s2-> -- here the "closest" is the one closest to p
+                            -- AFTER scaling by cul. During optimization this
+                            -- segment might change.
+      if distPS pt (scaleS s1) < distPS pt (scaleS s2) then s1 else s2)
     (polySegments!!0) polySegments
   in scalexyPSCk pt closest c k
   
+-- (output)
 scalebPGCout :: Point -> Polygon -> Point -> Double -> (Polygon, Double, Double)
 scalebPGCout pt poly c cumulative = let 
   scaleG = scalePGk c poly
+  polySegments = getSegments poly
   f x = (distPG pt $ scaleG x)**2
   g x = scalebPGCk pt poly c x
   k = valof $ linesearch f g cumulative
-  poly' = scalePGk c poly (cumulative + k)
-  in (poly', g (cumulative+k), cumulative + k)
+  poly' = scaleG (cumulative + k)
+  in (poly', g(cumulative+k), cumulative + k)
 
 -- (output) for graphing 
 scalegraphPGC :: Point -> Polygon -> Point -> ([Double], Double)
@@ -523,6 +553,9 @@ graphDistPsiGGC polyA polyB c = let
 valof x = case x of Nothing -> 0
                     Just x -> x
 
+valof2 x = case x of Nothing -> [0,0]
+                     Just x -> x
+
 -- (helper) given an angle, returns its equiv. in range [0, 2*pi]
 wrap2pi :: Angle -> Angle
 wrap2pi theta = 
@@ -542,9 +575,17 @@ midpt ((x1,y1),(x2,y2)) = ( (x1+x2)/2, (y1+y2)/2 )
 neg :: Vect -> Vect
 neg (a,b) = (-a,-b)
 
+-- (helper) adds two vector together
+add :: Vect -> Vect -> Vect
+add (x1,y1) (x2,y2) = (x1+x2, y1+y2)
+
 -- (helper) does vector subtraction
 minus :: Vect -> Vect -> Vect
 minus (x1,y1) (x2,y2) = (x1-x2, y1-y2)
+
+-- (helper) gives mag of vector
+mag :: Vect -> Double
+mag (x,y) = sqrt $ x**2 + y**2
 
 -- (helper) normalizes a vector
 normalize :: Vect -> Vect
@@ -568,7 +609,17 @@ sdistPL (p1,p2) ((x1,y1),(x2,y2)) = let
   (u1, u2) = segN ((x1,y1),(x2,y2))
   in u1 * (p1-x1) + u2 * (p2-y1)
 
--- (helpers below) returns elements rotated around c for angle psi
+-- (helpers below) returns elements transformed by some amount
+
+movebyPm :: Point -> Vect -> Point
+movebyPm (x,y) (mx,my) = (x+mx, y+my)
+
+movebySm :: LineSeg -> Vect -> LineSeg
+movebySm (x,y) m = (movebyPm x m, movebyPm y m)
+
+movebyGm :: Polygon -> Vect -> Polygon
+movebyGm pts m = map (\p->movebyPm p m) pts
+
 rotateAroundPSa :: Point -> LineSeg -> Angle -> LineSeg
 rotateAroundPSa c (p1,p2) psi = (rotateAroundPPa c p1 psi, rotateAroundPPa c p2 psi)
 

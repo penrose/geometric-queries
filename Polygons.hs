@@ -135,22 +135,6 @@ maxUDistSegGSaprx pts ((x1,y1), (x2,y2)) = let
   samples = filter (\(x,_)->(x-x1)/(x2-x1)<=1) samplesRaw
   in foldl longerSeg zeroSeg $ map (\p->(closestPointGP pts p, p)) samples
 
--- (helper) (sketchy) D_{A,s} (max unsigned dist from a poly to a segment)
-maxUDistSegGSbad :: Polygon -> LineSeg -> LineSeg
-maxUDistSegGSbad pts seg = let
-  ((x1,y1), (x2,y2)) = seg
-  boundary = getSegments pts
-  pairs = concat $ map (\s->map (\t->(s,t)) boundary) boundary
-  cmp q1 q2 = compare (dist q1 (x1,y1)) (dist q2 (x1,y1))
-  eq q1 q2 = dist q1 q2 < epsilon
-  candidatesRaw = map head $ group $ sort $
-    concat $ map (mudCandRel seg) pairs
-  candidatePt = map (\rel -> (x1+rel*(x2-x1), y1+rel*(y2-y1))) candidatesRaw
-  candidateSeg = map (\p->(p, closestPointGP pts p)) candidatePt
-  in foldl longerSeg zeroSeg candidateSeg
-
-sqr = [(-1,0), (0,1), (1,0), (0,-1)] :: Polygon
-
 -- (helper) (exact) D_{A,s} (max unsigned dist from a poly to a segment)
 maxUDistSegGS :: Polygon -> LineSeg -> LineSeg
 maxUDistSegGS pts seg = let
