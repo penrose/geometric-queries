@@ -153,6 +153,8 @@ eval func args = case func of
 
   "combGGCout" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPt d) ++"]]") $
     combGGCout (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "combGCGCout" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPoly d) ++"]]") $
+    combGCGCout (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
     
 
   -- below: for test in js

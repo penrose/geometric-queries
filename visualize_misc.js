@@ -57,13 +57,13 @@ window.onload = function () {
 //--------- test grad -------------
 
 function step() {
-  // if (graph) P.updateGraph();
   [type, dim, orig] = func.type;
   if (terminated) { // first step, initialize cum and term
     terminated = false;
     cumulative = [];
     if(type==0||type==1) for(var i=0; i<dim; i++) cumulative.push(type);
     else cumulative = [0,0,0,1]; //type==2, combination of all
+    if (type==3) cumulative = [0,0,0,1,0,0,0,1]; //type=3, move both polys
 
     args_orig = new Array(selections.length);
     for(var i=0; i<selections.length; i++) {
@@ -82,7 +82,7 @@ function step() {
   }
   // additional argument: cumulative change
   args.push([cumulative]);
-  if (type==2) args.push([[getInput('in1'),getInput('in2'),getInput('in3')]]); // combination: one additional arg (weight)
+  if (type>=2) args.push([[getInput('in1'),getInput('in2'),getInput('in3')]]); // combination: one additional arg (weight)
   var [move, state, cum, additional] = evaluate (func.f, args);
   cumulative = cum;
   func.action (move);

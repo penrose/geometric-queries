@@ -24,6 +24,7 @@ module Gradients (
   rotbGGCout,
   scalebGGCout,
   combGGCout,
+  combGCGCout,
   -- graphing (rotation)
   graphDistPsiPSC,
   graphDist2PsiPSC,
@@ -575,13 +576,24 @@ combGGC polyA polyB (cx,cy) [mx, my, t, s] = let
     + cost*mx_cx - sint*my_cy)
     + 2*u2_v2 * (sint*x1 + cost*x2
     + sint*mx_cx + cost*my_cy)
+  pen = -1/s**2
   in [dmx, dmy, dt, ds]
+
+combGCGCout :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double], Polygon)
+combGCGCout polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+  polyA' = scalePGk cA (rotateAroundPGa cA (movebyGm polyA (c11,c12)) c13) c14
+  polyB' = scalePGk cB (rotateAroundPGa cB (movebyGm polyB (c21,c22)) c23) c24
+  (polyBres, gradB, cumB, _) = combGGCout polyA' polyB cB [c21,c22,c23,c24] weights
+  (polyAres, gradA, cumA, _) = combGGCout polyB' polyA cA [c11,c12,c13,c14] weights
+  in trace ((show gradA)++" "++(show gradB)) $ (polyAres, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
 
 combGGCout :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double], Point)
 combGGCout polyA polyB c cumulative [k1, k2, k3] = let
   [cumT1, cumT2, cumR, cumS] = cumulative
   -- energy: dist sqr after all transformations applied (trans -> rot -> scale)
-  f [m1,m2,r,s] = let
+  -- defining energy to be dist squared, but use gradient of distsq + 1/s (to disallow negative scale) ?
+  --dsq = 
+  f [m1,m2,r,s] = let 
     appliedT = movebyGm polyB (m1,m2) --scalePGk c polyB s
     appliedTR = rotateAroundPGa c appliedT r
     appliedTRS = scalePGk c appliedTR s
@@ -597,33 +609,6 @@ combGGCout polyA polyB c cumulative [k1, k2, k3] = let
   appliedTRS = scalePGk c appliedTR (cumS+s')
   g0 = mag' $ g $ add' cumulative delt
   in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 else g0, add' cumulative delt, c)
-
-combGGCout' :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double], Point)
-combGGCout' polyA polyB c0 cumulative [k1, k2, k3] = let
-  [cumT1, cumT2, cumR, cumS] = cumulative
-  c = movebyPm c0 (cumT1, cumT2)
-  rel = getRelpos c0 polyB
-  -- energy: dist sqr after all transformations applied (scale -> rot -> move)
-  f [m1,m2,r,s] = let
-    appliedS = scalePGk c polyB s
-    appliedSR = rotateAroundPGa c appliedS r
-    appliedSRT = movebyGm appliedSR (m1,m2)
-    in (unsignedDistGG polyA appliedSRT)**2
-  -- is this even valid..
-  g [m1,m2,r,s] = trace (show res) res where
-    (m1',m2') = movebGG polyA polyB (m1,m2)
-    r' = rotbGGCmr polyA polyB c [m1,m2,r]
-    s' = scalebGGCmrk polyA polyB c [m1,m2,r,s]
-    res = [k1*m1', k1*m2', k2*r', k3*s']
-  dir = neg' $ normalize' $ g cumulative
-  [m1', m2', r', s'] = valof' 4 $ linesearch' f g dir cumulative
-  delt = [m1', m2', r', s']
-  appliedS = trace ("delta: "++(show delt)) $ scalePGk c polyB (cumS+s')
-  appliedSR = rotateAroundPGa c appliedS (cumR+r')
-  appliedSRT = movebyGm appliedSR (cumT1+m1',cumT2+m2')
-  g0 = mag' $ g $ add' cumulative delt
-  c' = cFromRelpos rel appliedSRT (cumR+r') (cumS+s')
-  in (appliedSRT, if f (add' cumulative delt) < epsilon then 0 else g0, add' cumulative delt, c')
 
 ---------- Below: helpers (vector math, etc.) ------------
 
@@ -702,23 +687,6 @@ constrain lo hi val =
   else val
 
 midpt ((x1,y1),(x2,y2)) = ( (x1+x2)/2, (y1+y2)/2 )
-
-getRelpos :: Point -> Polygon -> Vect
-getRelpos (c1,c2) oldpoly = let
-  (sumx, sumy) = foldl (\(a,b) (c,d)->(a+c,b+d)) (0,0) oldpoly
-  l = (fromIntegral $ length oldpoly)::Double
-  (avgx, avgy) = (sumx/l, sumy/l)
-  in (c1-avgx, c2-avgy)
-
-cFromRelpos :: Vect -> Polygon -> Double -> Double -> Point
-cFromRelpos rel newpoly r s = let
-  (sumx, sumy) = foldl (\(a,b) (c,d)->(a+c,b+d)) (0,0) newpoly
-  l = (fromIntegral $ length newpoly)::Double
-  avgpos = (sumx/l, sumy/l)
-  rel' = rotateAroundPPa (0,0) rel r
-  rel'' = scalePPk (0,0) rel' s
-  in add avgpos rel''
-
 
 -- (helper) gives negation of a vector
 neg :: Vect -> Vect

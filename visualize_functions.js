@@ -12,6 +12,19 @@ var gradFuncsList = [/*{
         elems[pInd][0][1] -= res[1];
       }
     }, */{
+      f: "combGCGCout",
+      type: [3,4,1],
+      epsilon: EPS,
+      str: 'comb <poly> <pt> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[0];
+        elems[pInd] = copyElem(res);
+      },
+      action2: ([res])=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
+      }
+    },{
       f: "combGGCout",
       type: [2,4,1],
       epsilon: EPS,
