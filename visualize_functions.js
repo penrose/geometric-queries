@@ -12,15 +12,37 @@ var gradFuncsList = [/*{
         elems[pInd][0][1] -= res[1];
       }
     }, */{
+      f: "combGGCout",
+      type: [2,4,1],
+      epsilon: EPS,
+      str: 'comb <poly> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
+      }
+    }, {
       f: "movexyPSout",
-      type: [0,2],
+      type: [0,2,1],
       epsilon: EPS,
       str: 'move xy to decrease dist <pt> <seg>',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
-    }, /*{
+    }, {
+      f: "movebGGout",
+      type: [0,2,1],
+      epsilon: EPS,
+      str: 'move b to decrease dist <poly> <poly>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    },/*{
       f: "rotxyPSTout",
       epsilon: 0.01,
       str: 'rotate xy around midpt <pt> <seg>',
@@ -30,7 +52,7 @@ var gradFuncsList = [/*{
       }
     },*/ {}, {
       f: "rotxyPSCout",
-      type: [0,1],
+      type: [0,1,0],
       epsilon: EPS,
       str: 'rotate xy around C <pt> <seg> <pt>',
       action: (res)=>{
@@ -75,7 +97,7 @@ var gradFuncsList = [/*{
       }
     },*/ {
       f: "rotbPGCout",
-      type: [0,1],
+      type: [0,1,0],
       epsilon: EPS,
       str: 'rotate polygon <pt> <poly> <pt>',
       action: (res)=>{
@@ -85,7 +107,7 @@ var gradFuncsList = [/*{
       }
     }, {
       f: "rotbSSCout",
-      type: [0,1],
+      type: [0,1,0],
       epsilon: EPS,
       str: 'rotate segment B <seg> <seg> <pt>',
       action: (res)=>{
@@ -95,7 +117,7 @@ var gradFuncsList = [/*{
       }
     }, {
       f: "rotbSGCout",
-      type: [0,1],
+      type: [0,1,0],
       epsilon: EPS,
       str: 'rotate polygon <seg> <poly> <pt>',
       action: (res)=>{
@@ -105,7 +127,7 @@ var gradFuncsList = [/*{
       }
     }, {
       f: "rotbGGCout",
-      type: [0,1],
+      type: [0,1,1],
       epsilon: EPS,
       str: 'rotate polygon <poly> <poly> <pt>',
       action: (res)=>{
@@ -115,7 +137,7 @@ var gradFuncsList = [/*{
       }
     }, {}, {
       f: "scalexyPSCout",
-      type: [1,1],
+      type: [1,1,1],
       epsilon: EPS4,
       str: 'scale xy around C <pt> <seg> <pt>',
       action: (res)=>{
@@ -124,7 +146,7 @@ var gradFuncsList = [/*{
       }
     }, {
       f: "scalebPGCout",
-      type: [1,1],
+      type: [1,1,1],
       epsilon: EPS4,
       str: 'scale poly around C <pt> <poly> <pt>',
       action: (res)=>{
@@ -133,7 +155,7 @@ var gradFuncsList = [/*{
       }
     }, {
       f: "scalebSSCout",
-      type: [1,1],
+      type: [1,1,1],
       epsilon: EPS4,
       str: 'scale segment B around C <seg> <seg> <pt>',
       action: (res)=>{
@@ -142,7 +164,7 @@ var gradFuncsList = [/*{
       }
     }, {
       f: "scalebSGCout",
-      type: [1,1],
+      type: [1,1,1],
       epsilon: EPS4,
       str: 'scale poly around C <seg> <poly> <pt>',
       action: (res)=>{
@@ -151,7 +173,7 @@ var gradFuncsList = [/*{
       }
     }, {
       f: "scalebGGCout",
-      type: [1,1],
+      type: [1,1,1],
       epsilon: EPS4,
       str: 'scale poly around C <poly> <poly> <pt>',
       action: (res)=>{

@@ -20,8 +20,10 @@ module Gradients (
   rotbSGCout,
   scalebSGCout,
   -- two polygons
+  movebGGout,
   rotbGGCout,
   scalebGGCout,
+  combGGCout,
   -- graphing (rotation)
   graphDistPsiPSC,
   graphDist2PsiPSC,
@@ -80,6 +82,7 @@ movepPS p (x,y) = let
 movexyPS p xy = (0,0)
 
 -- (output) gives (new xy, mag. of gradient, cumul. disp. from original)
+-- suppose given original xy, but know cumulative.
 movexyPSout :: Point -> LineSeg -> Vect -> (LineSeg, Double, Vect)
 movexyPSout p xy cumulative = let
   (cum1,cum2) = cumulative
@@ -88,12 +91,12 @@ movexyPSout p xy cumulative = let
   g [m1,m2] = let 
     (res1,res2) = movexyPSm p xy (m1,m2) -- [Double] (der. along search dir) 
     in [res1,res2]
-  (dir1,dir2) = neg $ normalize $ let [r1,r2] = g [0,0] in (r1,r2)
-  [d1,d2] = valof2 $ linesearch' f g [dir1,dir2] [0,0] --replace w linesearch result
+  (dir1,dir2) = neg $ normalize $ let [r1,r2] = g [cum1,cum2] in (r1,r2)
+  [d1,d2] = valof' 2 $ linesearch' f g [dir1,dir2] [cum1,cum2] --replace w linesearch result
   delt = (d1,d2)
-  xy' = movexyBy delt
-  g0 = let [x1,x2] = g [0,0] in mag (x1,x2)
-  in (xy', if f [0,0] < epsilon then 0 else g0, add cumulative delt)
+  xy' = movexyBy $ add cumulative delt
+  g0 = let [x1,x2] = g [cum1+d1,cum2+d2] in mag (x1,x2)
+  in (xy', if f [cum1+d1, cum2+d2] < epsilon then 0 else g0, add cumulative delt)
 
 movexyPSm :: Point -> LineSeg -> Vect -> Vect
 movexyPSm (p1,p2) ((x1,y1),(x2,y2)) (mx,my) = let
@@ -450,22 +453,61 @@ scalegraphSGC seg poly c = let
 
 ---------- Below: two polygons ------------
 
-rotbGGC :: Polygon -> Polygon -> Point -> Angle
-rotbGGC polyA polyB c = let
+--TODO BELOW: FIX ACCORDING TO movexyPSm
+-- gives gradient at (0,0)
+-- actually no. Give at cumulative
+movebGG :: Polygon -> Polygon -> Vect -> Vect
+movebGG polyA polyB cumulative = let
+  polyB' = movebyGm polyB cumulative
+  ((x1,y1), (x2,y2)) = shortestSegmentGG polyA polyB'
+  fromA = (dist (x1,y1) $ closestPointGP polyA (x1,y1)) < epsilon
+  in if fromA then (2*(x2-x1), 2*(y2-y1))
+     else (2*(x1-x2), 2*(y1-y2))
+
+-- here polyB is original polyB
+movebGGout :: Polygon -> Polygon -> Vect -> (Polygon, Double, Vect)
+movebGGout polyA polyB cumulative = let
+  (cum1, cum2) = cumulative
+  -- origB = movebyGm polyB $ neg cumulative
+  movebBy = movebyGm polyB
+  f [m1,m2] = (unsignedDistGG polyA (movebBy (m1,m2)))**2
+  g [m1,m2] = let
+    (res1,res2) = movebGG polyA polyB (m1,m2)
+    in [res1, res2]
+  (dir1,dir2) = neg $ normalize $ let [r1,r2] = g [cum1,cum2] in (r1,r2)
+  [d1,d2] = valof' 2 $ linesearch' f g [dir1,dir2] [cum1,cum2]
+  delt = (d1,d2)
+  polyB' = movebBy $ add cumulative delt
+  g0 = let [x1,x2] = g [cum1+d1,cum2+d2] in mag (x1,x2)
+  in (polyB', if f [cum1+d1,cum2+d2] < epsilon then 0 else g0, add cumulative delt)
+
+rotbGGC :: Polygon -> Polygon -> Point -> Angle -> Angle
+rotbGGC polyA polyB c cumulative = let
+  polyB' = rotateAroundPGa c polyB cumulative
   aSegments = getSegments polyA
   closest2B = foldl (\s1 s2 ->
-    if shortestDistGS polyB s1 < shortestDistGS polyB s2 then s1
+    if shortestDistGS polyB' s1 < shortestDistGS polyB' s2 then s1
     else s2) (aSegments!!0) aSegments
-  in rotbSGC closest2B polyB c
+  in rotbSGC closest2B polyB' c
+
+rotbGGCmr :: Polygon -> Polygon -> Point -> [Double] -> Angle
+rotbGGCmr polyA polyB c [m1, m2, r] = let
+  polyB'' = movebyGm polyB (m1,m2)
+  polyB' = rotateAroundPGa c polyB'' r
+  aSegments = getSegments polyA
+  closest2B = foldl (\s1 s2 ->
+    if shortestDistGS polyB' s1 < shortestDistGS polyB' s2 then s1
+    else s2) (aSegments!!0) aSegments
+  in rotbSGC closest2B polyB' c
 
 rotbGGCout :: Polygon -> Polygon -> Point -> Angle -> (Polygon, Double, Angle)
 rotbGGCout polyA polyB c cumulative = let
   rotpolyB = rotateAroundPGa c polyB
   f x = (unsignedDistGG polyA $ rotpolyB x)**2
-  g x = rotbGGC polyA (rotpolyB x) c
-  psi = valof $ linesearch f g 0
-  polyB' = rotateAroundPGa c polyB psi
-  in (polyB', if f 0 < epsilon then 0 else g 0, cumulative + psi)
+  g x = rotbGGC polyA polyB c x
+  psi = valof $ linesearch f g cumulative
+  polyB' = rotateAroundPGa c polyB (cumulative + psi)
+  in (polyB', if f(cumulative+psi) < epsilon then 0 else g(cumulative+psi), cumulative + psi)
 
 scalebGGCk :: Polygon -> Polygon -> Point -> Double -> Angle
 scalebGGCk polyA polyB c k = let
@@ -474,6 +516,18 @@ scalebGGCk polyA polyB c k = let
     if shortestDistGS polyB s1 < shortestDistGS polyB s2 then s1
     else s2) (aSegments!!0) aSegments
   in scalebSGCk closest2B polyB c k
+
+scalebGGCmrk :: Polygon -> Polygon -> Point -> [Double] -> Angle
+scalebGGCmrk polyA polyB c [m1,m2,r,s] = let
+  polyB''' = rotateAroundPGa c polyB r --applied cumulative trans/rot, but not scale
+  polyB'' = movebyGm polyB''' (m1,m2)
+  c' = movebyPm c (m1,m2)
+  -- polyB' = scalePGk c' polyB'' s
+  aSegments = getSegments polyA
+  closest2B = foldl (\s1 s2 ->
+    if shortestDistGS polyB'' s1 < shortestDistGS polyB'' s2 then s1
+    else s2) (aSegments!!0) aSegments
+  in scalebSGCk closest2B polyB'' c' s
 
 scalebGGCout :: Polygon -> Polygon -> Point -> Double -> (Polygon, Double, Double)
 scalebGGCout polyA polyB c cumulative = let 
@@ -492,6 +546,84 @@ scalegraphGGC polyA polyB c = let
   polyBs = map (\a -> scalePGk c polyB a) scales
   ss = map (\s -> (unsignedDistGG polyA s)**2) polyBs
   in (ss, foldl max 0 ss)
+
+combGGC :: Polygon -> Polygon -> Point -> [Double] -> [Double]
+combGGC polyA polyB (cx,cy) [mx, my, t, s] = let
+  appliedT = movebyGm polyB (mx,my) --scalePGk c polyB s
+  appliedTR = rotateAroundPGa (cx,cy) appliedT t
+  appliedTRS = scalePGk (cx,cy) appliedTR s
+  ((x1',y1), (x2',y2)) = shortestSegmentGG polyA appliedTRS
+  fromA = (dist (x1',y1) $ closestPointGP polyA (x1',y1)) < epsilon
+  ((v1,v2), (x1'',x2'')) = if fromA then ((x1',y1),(x2',y2)) else ((x2',y2),(x1',y1))
+  revS = scalePPk (cx,cy) (x1'',x2'') (1/s)
+  revSR = rotateAroundPPa (cx,cy) revS (-t)
+  (x1,x2) = movebyPm revSR (-mx,-my)
+  -- ok ready...
+  cost = cos t
+  sint = sin t
+  mx_cx = mx - cx
+  my_cy = my - cy
+  u1_v1 = s * cost*x1 - s * sint*x2 + s*cost*mx_cx - s*sint*my_cy + cx - v1
+  u2_v2 = s * sint*x1 + s * cost*x2 + s*sint*mx_cx + s*cost*my_cy + cy - v2
+  dmx = 2*u1_v1 * s*cost + 2*u2_v2 * s*sint
+  dmy = -2*u1_v1 * s*sint + 2*u2_v2 * s*cost
+  dt = 2*u1_v1 * ( -s*sint*x1 - s*cost*x2
+    - s*sint*mx_cx - s*cost*my_cy)
+    + 2*u2_v2 * (s*cost*x1 - s*sint*x2
+    + s*cost*mx_cx - s*sint*my_cy)
+  ds = 2*u1_v1 * (cost*x1 - sint*x2
+    + cost*mx_cx - sint*my_cy)
+    + 2*u2_v2 * (sint*x1 + cost*x2
+    + sint*mx_cx + cost*my_cy)
+  in [dmx, dmy, dt, ds]
+
+combGGCout :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double], Point)
+combGGCout polyA polyB c cumulative [k1, k2, k3] = let
+  [cumT1, cumT2, cumR, cumS] = cumulative
+  -- energy: dist sqr after all transformations applied (trans -> rot -> scale)
+  f [m1,m2,r,s] = let
+    appliedT = movebyGm polyB (m1,m2) --scalePGk c polyB s
+    appliedTR = rotateAroundPGa c appliedT r
+    appliedTRS = scalePGk c appliedTR s
+    in (unsignedDistGG polyA appliedTRS)**2
+  g [m1,m2,r,s] = res where
+    [m1',m2',r',s'] = combGGC polyA polyB c [m1,m2,r,s]
+    res = [k1*m1', k1*m2', k2*r', k3*s']
+  dir = neg' $ normalize' $ g cumulative
+  [m1', m2', r', s'] = valof' 4 $ linesearch' f g dir cumulative
+  delt = [m1', m2', r', s']
+  appliedT = movebyGm polyB (cumT1+m1', cumT2+m2') --scalePGk c polyB s
+  appliedTR = rotateAroundPGa c appliedT (cumR+r')
+  appliedTRS = scalePGk c appliedTR (cumS+s')
+  g0 = mag' $ g $ add' cumulative delt
+  in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 else g0, add' cumulative delt, c)
+
+combGGCout' :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double], Point)
+combGGCout' polyA polyB c0 cumulative [k1, k2, k3] = let
+  [cumT1, cumT2, cumR, cumS] = cumulative
+  c = movebyPm c0 (cumT1, cumT2)
+  rel = getRelpos c0 polyB
+  -- energy: dist sqr after all transformations applied (scale -> rot -> move)
+  f [m1,m2,r,s] = let
+    appliedS = scalePGk c polyB s
+    appliedSR = rotateAroundPGa c appliedS r
+    appliedSRT = movebyGm appliedSR (m1,m2)
+    in (unsignedDistGG polyA appliedSRT)**2
+  -- is this even valid..
+  g [m1,m2,r,s] = trace (show res) res where
+    (m1',m2') = movebGG polyA polyB (m1,m2)
+    r' = rotbGGCmr polyA polyB c [m1,m2,r]
+    s' = scalebGGCmrk polyA polyB c [m1,m2,r,s]
+    res = [k1*m1', k1*m2', k2*r', k3*s']
+  dir = neg' $ normalize' $ g cumulative
+  [m1', m2', r', s'] = valof' 4 $ linesearch' f g dir cumulative
+  delt = [m1', m2', r', s']
+  appliedS = trace ("delta: "++(show delt)) $ scalePGk c polyB (cumS+s')
+  appliedSR = rotateAroundPGa c appliedS (cumR+r')
+  appliedSRT = movebyGm appliedSR (cumT1+m1',cumT2+m2')
+  g0 = mag' $ g $ add' cumulative delt
+  c' = cFromRelpos rel appliedSRT (cumR+r') (cumS+s')
+  in (appliedSRT, if f (add' cumulative delt) < epsilon then 0 else g0, add' cumulative delt, c')
 
 ---------- Below: helpers (vector math, etc.) ------------
 
@@ -553,8 +685,8 @@ graphDistPsiGGC polyA polyB c = let
 valof x = case x of Nothing -> 0
                     Just x -> x
 
-valof2 x = case x of Nothing -> [0,0]
-                     Just x -> x
+valof' dim x = case x of Nothing -> take dim [0,0..]
+                         Just x -> x
 
 -- (helper) given an angle, returns its equiv. in range [0, 2*pi]
 wrap2pi :: Angle -> Angle
@@ -571,13 +703,37 @@ constrain lo hi val =
 
 midpt ((x1,y1),(x2,y2)) = ( (x1+x2)/2, (y1+y2)/2 )
 
+getRelpos :: Point -> Polygon -> Vect
+getRelpos (c1,c2) oldpoly = let
+  (sumx, sumy) = foldl (\(a,b) (c,d)->(a+c,b+d)) (0,0) oldpoly
+  l = (fromIntegral $ length oldpoly)::Double
+  (avgx, avgy) = (sumx/l, sumy/l)
+  in (c1-avgx, c2-avgy)
+
+cFromRelpos :: Vect -> Polygon -> Double -> Double -> Point
+cFromRelpos rel newpoly r s = let
+  (sumx, sumy) = foldl (\(a,b) (c,d)->(a+c,b+d)) (0,0) newpoly
+  l = (fromIntegral $ length newpoly)::Double
+  avgpos = (sumx/l, sumy/l)
+  rel' = rotateAroundPPa (0,0) rel r
+  rel'' = scalePPk (0,0) rel' s
+  in add avgpos rel''
+
+
 -- (helper) gives negation of a vector
 neg :: Vect -> Vect
 neg (a,b) = (-a,-b)
 
+-- (helper) generalized neg
+neg' :: [Double] -> [Double]
+neg' v = map (\x->(-x)) v
+
 -- (helper) adds two vector together
 add :: Vect -> Vect -> Vect
 add (x1,y1) (x2,y2) = (x1+x2, y1+y2)
+
+add' :: [Double] -> [Double] -> [Double]
+add' v1 v2 = map (\(a,b)->a+b) (zip v1 v2)
 
 -- (helper) does vector subtraction
 minus :: Vect -> Vect -> Vect
@@ -587,11 +743,20 @@ minus (x1,y1) (x2,y2) = (x1-x2, y1-y2)
 mag :: Vect -> Double
 mag (x,y) = sqrt $ x**2 + y**2
 
+-- (helper) generalized mag
+mag' :: [Double] -> Double
+mag' xs = sqrt $ foldl (\a b->a+b) 0 (map (\x->x**2) xs)
+
 -- (helper) normalizes a vector
 normalize :: Vect -> Vect
 normalize (a,b) = let
   len = dist (0,0) (a,b)
   in (a/len, b/len)
+
+-- (helper) generalized normalize
+normalize' :: [Double] -> [Double]
+normalize' xs = let magnitude = mag' xs in
+  map (\x -> x/magnitude) xs
 
 -- (helper) scale vector by a factor
 scale :: Double -> Vect -> Vect

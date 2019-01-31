@@ -3,6 +3,8 @@
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/addons/p5.dom.min.js"></script>
+    
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script type="text/javascript" src="visualize_functions.js"></script>
     <script type="text/javascript" src="visualize_misc.js"></script>
@@ -15,6 +17,7 @@
     <input type="button" id="manual" value="add" onclick="()=>{}"><br/>
     <span>Format: points separated by commas, each point in form [x,y]. 1 point: point; 2 points: segment; 3 or more points: polygon</span>
     <div id="graph-container"></div>
+    <div>Additional input fields: </div><input id="in1" type="text" value="1"><input id="in2" type="text" value="0"><input id="in3" type="text" value="0">
 
     <p>For usage, see <a href="https://github.com/penrose/geometric-queries">here</a>.</p>
   </body>

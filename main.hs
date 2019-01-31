@@ -122,6 +122,8 @@ eval func args = case func of
     movepPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
   "movexyPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
     movexyPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
+  "movebGGout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (strPt c) ++ "]") $
+    movebGGout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
 
   "rotxyPSTout" -> (\(a,b) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "]") $
     rotxyPSTout (parsePt (args!!0)) (parseSeg (args!!1))
@@ -149,6 +151,10 @@ eval func args = case func of
   "scalebGGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
     scalebGGCout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
 
+  "combGGCout" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPt d) ++"]]") $
+    combGGCout (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+    
+
   -- below: for test in js
   "maxUDistGG" -> show $
     maxUDistGG (parsePoly (args!!0)) (parsePoly (args!!1))
@@ -173,6 +179,9 @@ parseSeg arg = let
 
 parsePoly :: [[Double]] -> Polygon
 parsePoly arg = map (\(a:b:_)->(a,b)) arg
+
+parseList :: [[Double]] -> [Double]
+parseList arg = arg!!0
 
 strBool :: Bool -> String
 strBool b = if b then "true" else "false"

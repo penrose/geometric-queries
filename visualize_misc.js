@@ -7,7 +7,7 @@ var elems = [];
 var selections = [];
 var recording = false;
 var createMode = 0;
-var currentFuncIndex;
+var currentFuncIndex = -1;
 var args = [];
 
 var mode = 1;
@@ -58,33 +58,35 @@ window.onload = function () {
 
 function step() {
   // if (graph) P.updateGraph();
-  [type, dim] = func.type;
+  [type, dim, orig] = func.type;
   if (terminated) { // first step, initialize cum and term
     terminated = false;
-    if (type == 0) {
-      if (dim==1) cumulative = [0];
-      else cumulative = [0,0];
-    }
-    else {
-      cumulative = [1]; // scaling. dim is 1 for sure
-      args_orig = new Array(selections.length);
-      for(var i=0; i<selections.length; i++) {
-        args_orig[i] = copyElem(elems[selections[i]]);
-      }
+    cumulative = [];
+    if(type==0||type==1) for(var i=0; i<dim; i++) cumulative.push(type);
+    else cumulative = [0,0,0,1]; //type==2, combination of all
+
+    args_orig = new Array(selections.length);
+    for(var i=0; i<selections.length; i++) {
+      args_orig[i] = copyElem(elems[selections[i]]);
     }
   } 
-  if (type==0)
+  // push elem arguments (originals, or transformed)
+  if (orig==0)
     for (var i=0; i<selections.length; i++) {
       args.push(elems[selections[i]]);
     }
-  else 
+  else {
     for (var i=0; i<selections.length; i++) {
       args.push(args_orig[i]);
     }
+  }
+  // additional argument: cumulative change
   args.push([cumulative]);
-  var [move, state, cum] = evaluate (func.f, args);
+  if (type==2) args.push([[getInput('in1'),getInput('in2'),getInput('in3')]]); // combination: one additional arg (weight)
+  var [move, state, cum, additional] = evaluate (func.f, args);
   cumulative = cum;
   func.action (move);
+  if (additional) func.action2 (additional);
   console.log(state + ", " + cum);
   if (Math.abs(state) < func.epsilon || stepCounter >= MAX_STEPS) {
     console.log("stopped.");
@@ -155,7 +157,11 @@ function doHttpGet(url, handler) {
 function manualAdd(){
   var txt = document.getElementById('input').value;
   elems.push(eval('['+txt+']'));
+}
 
+function getInput(id){
+  var txt = document.getElementById(id).value;
+  return eval(txt);
 }
 
 //--------- test max unsigned -----------

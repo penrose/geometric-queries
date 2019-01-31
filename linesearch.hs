@@ -7,14 +7,14 @@ import Debug.Trace
 
 epsilon = 0.1 ** 30
 betaInit = 1/0
-(k1, k2) = (0.05, 0.95)
-initialt = 0.12 -- avoids cumulative scale 0 (at which grad is not defined)
+(k1, k2) = (0.03, 0.96)
+initialt = 0.03 -- avoids cumulative scale 0 (at which grad is not defined)
 
 maxLoop = 120
 
 -- input function to optimize and its gradient
 linesearch' :: ([Double] -> Double) -> ([Double] -> [Double]) -> [Double] -> [Double] -> Maybe [Double] -- returns t
-linesearch' f g dir arg = trace (show arg) $ let
+linesearch' f g dir arg = let
   --dir = neg $ normalize $ g arg --search direction: opposite to gradient (should not have to swap ever?)
   in trace (show$"dir: "++(show dir)) $ if f arg < epsilon then trace ("alr satisfied. ") Nothing -- TODO : this check shouldn't be in linesearch
   else if (directional g dir arg) > 0 then let -- swap at x = arg
