@@ -1,25 +1,24 @@
 module Linesearch (
-  linesearch,
-  linesearch'
+  linesearch
 ) where 
 
 import Debug.Trace
 
-epsilon = 0.1 ** 30
+epsilon = 0.1 ** 10
 betaInit = 1/0
 (k1, k2) = (0.03, 0.96)
-initialt = 0.03 -- avoids cumulative scale 0 (at which grad is not defined)
+initialt = 0.3 -- avoids cumulative scale 0 (at which grad is not defined)
 
 maxLoop = 120
 
 -- input function to optimize and its gradient
-linesearch' :: ([Double] -> Double) -> ([Double] -> [Double]) -> [Double] -> [Double] -> Maybe [Double] -- returns t
-linesearch' f g dir arg = let
+linesearch :: ([Double] -> Double) -> ([Double] -> [Double]) -> [Double] -> [Double] -> Maybe [Double] -- returns t
+linesearch f g dir arg = let
   --dir = neg $ normalize $ g arg --search direction: opposite to gradient (should not have to swap ever?)
   in trace (show$"dir: "++(show dir)) $ if f arg < epsilon then trace ("alr satisfied. ") Nothing -- TODO : this check shouldn't be in linesearch
   else if (directional g dir arg) > 0 then let -- swap at x = arg
   -- if grad is positive, swap the function
-  res = trace "flip" $ linesearch' f g (neg dir) arg
+  res = trace "flip" $ linesearch f g (neg dir) arg
   in case res of Nothing -> Nothing
                  Just x -> Just (neg x)
   else let
@@ -68,35 +67,6 @@ mult v a = map (\x -> a*x) v
 
 neg :: [Double] -> [Double]
 neg v = map (\x->(-x)) v
-
--- input function to optimize and its gradient
-linesearch :: (Double -> Double) -> (Double -> Double) -> Double -> Maybe Double
-linesearch f g arg = if f arg < epsilon then trace ("alr satisfied. ") Nothing -- TODO : this check shouldn't be in linesearch
-  else if g arg > 0 then let -- swap at x = arg
-  f' x = f (2*arg-x)
-  g' x = - (g (2*arg-x))
-  -- if grad is positive, swap the function
-  res = linesearch f' g' arg
-  in case res of Nothing -> Nothing
-                 Just x -> Just (-x)
-  else let
-  -- loop part
-  f0 = f arg
-  g0 = g arg
-  searchLoop alpha beta t counter = if counter > maxLoop then trace "reached max loop count" Nothing
-  else let 
-    f1 = f (arg+t)
-    g1 = g (arg+t)
-    (alpha', beta') = let am = armijo f0 f1 g0 k1 t in
-      if (not am && g1>0) || wolfeR g0 g1 k2 then (alpha, t) -- overshot while growing interval, start shrinking
-      else if wolfeL g0 g1 k2 then (t, beta) 
-      else (t, t)
-    in trace ("range: "++(show alpha')++", "++(show beta')) $ if beta'-alpha' < epsilon then trace 
-         ("finished in steps: "++(show counter)++"\nresult step: "++(show alpha')) 
-         Just alpha' --end condition: range small enough, returns stepsize (how much should displace from arg)
-       else if beta' < betaInit then searchLoop alpha' beta' ((beta'+alpha')/2) (counter+1)
-       else searchLoop alpha' beta' (alpha' * 2) (counter+1)
-  in searchLoop 0 betaInit initialt 0
 
 armijo f0 f1 g0 k1 t = f1 <= f0 + k1*t*g0*f0 
 

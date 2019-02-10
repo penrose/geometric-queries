@@ -86,77 +86,13 @@ eval func args = case func of
   "maxSignedDistSegGG" -> strSeg $
     maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
 
-  -- below: grad functions
-  "graphDistPsiPSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $ 
-    graphDistPsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
-  "graphDist2PsiPSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $ 
-    graphDist2PsiPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2)) (parsePt (args!!3))
-  "graphDistPsiPGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    graphDistPsiPGC (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-  "graphDistPsiSSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    graphDistPsiSSC (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
-  "graphDistPsiSGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    graphDistPsiSGC (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-  "graphDistPsiGGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    graphDistPsiGGC (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-  "scalegraphPSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    scalegraphPSC (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
-  "scalegraphPGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    scalegraphPGC (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-  "scalegraphSSC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    scalegraphSSC (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
-  "scalegraphSGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    scalegraphSGC (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-  "scalegraphGGC" -> (\(a,b) -> "["++(show a)++","++(show b)++"]") $
-    scalegraphGGC (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-
-  {-
-  "movepPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
-    movepPS (parsePt (args!!0)) (parseSeg (args!!1))
-  "movexyPS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
-    movexyPS (parsePt (args!!0)) (parseSeg (args!!1))
-  -}
-  "movexyPSout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "," ++ (strPt c) ++ "]") $
-    movexyPSout (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2))
-  "movepPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
-    movepPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
-  "movexyPSS" -> (\(a,b) -> "[" ++ (strPt a) ++ "," ++ (show b) ++ "]")$ 
-    movexyPSS (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2))
-  "movebGGout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (strPt c) ++ "]") $
-    movebGGout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2))
-
-  "rotxyPSTout" -> (\(a,b) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ "]") $
-    rotxyPSTout (parsePt (args!!0)) (parseSeg (args!!1))
-  "rotxyPSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
-    rotxyPSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "rotxyPSSCout" -> (\((a1,a2),b)->"[["++(strSeg a1)++","++(strSeg a2)++"],"++(show b)++"]")$
-    rotxyPSSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parseSeg (args!!2)) (parsePt (args!!3))
-  "rotbPGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ ",[" ++(show c)++"]]") $
-    rotbPGCout (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "rotbSSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
-    rotbSSCout (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "rotbSGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ ",[" ++(show c)++"]]") $
-    rotbSGCout (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "rotbGGCout" -> (\(a,b,c) -> "["++(strPoly a)++","++(show b)++ ",[" ++(show c)++"]]") $
-    rotbGGCout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-
-  "scalexyPSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
-    scalexyPSCout (parsePt (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebPGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
-    scalebPGCout (parsePt (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebSSCout" -> (\(a,b,c) -> "[" ++ (strSeg a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
-    scalebSSCout (parseSeg (args!!0)) (parseSeg (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebSGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
-    scalebSGCout (parseSeg (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-  "scalebGGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ ",[" ++ (show c) ++ "]]") $
-    scalebGGCout (parsePoly (args!!0)) (parsePoly (args!!1)) (parsePt (args!!2)) (parseNum (args!!3))
-
+  "containGGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+    containGGCout (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "combGGCout" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPt d) ++"]]") $
     combGGCout (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "combGCGCout" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPoly d) ++"]]") $
     combGCGCout (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
     
-
   -- below: for test in js
   "maxUDistGG" -> show $
     maxUDistGG (parsePoly (args!!0)) (parsePoly (args!!1))

@@ -17,15 +17,20 @@ module Polygons (
   unsignedDistGG,
   minSignedDistSegGG,
   maxSignedDistSegGG,
+  maxSignedDistGG,
   -- for testing --
   maxUDistGG,
   maxUDistGGtestSeg,
   maxUDistGGtest,
-  maxUDistSegGSaprx
+  maxUDistSegGSaprx,
+  -- helpers --
+  cookiePoly
+
 ) where
 
 import PointsAndLines
 import Data.List
+import Debug.Trace
 
 type Polygon = [Point]
 
@@ -50,18 +55,6 @@ getSegments pts = let
   lastInd = length pts - 1
   f x = if x==lastInd then (pts!!lastInd, pts!!0) else (pts!!x, pts!!(x+1))
   in map f [0..lastInd]
-
--- (deprecated) returns -1 if a given point is in the given polygon, 1 otherwise
--- could bump into weird edge cases esp if polygon has many vertices
-outsidednessOld :: Polygon -> Point -> Double
-outsidednessOld pts p = let
-  raySeg = (p, pOutside pts)
-  ixs = map (intersectionSS raySeg) (getSegments pts)
-  f count ix = case ix of
-    Nothing -> count
-    Just _ -> count + 1
-  ixCount = foldl f 0 ixs
-  in if mod ixCount 2 == 0 then 1.0 else -1.0
 
 -- returns -1.0 if given point is inside polygon or on its boundary, 1.0 otherwise
 outsidedness :: Polygon -> Point -> Double
@@ -127,7 +120,7 @@ shortestSegmentGS pts seg = foldl shorterSeg infSeg $
 -- (helper) (sampling) D_{A,s} (max unsigned dist from a poly to a segment)
 maxUDistSegGSaprx :: Polygon -> LineSeg -> LineSeg
 maxUDistSegGSaprx pts ((x1,y1), (x2,y2)) = let
-  density = (dist (x1,y1) (x2,y2)) * 5
+  density = (dist (x1,y1) (x2,y2)) * 2
   stepx = (x2-x1) / density
   stepy = (y2-y1) / density
   indices = [0..density]
@@ -176,9 +169,10 @@ unsignedDistGG pts1 pts2 = let
   in dist p1 p2
 
 -- Length of result is D_{A,B} (max unsigned dist).
+-- NOW USING SAMPLING
 maxUDistSegGG :: Polygon -> Polygon -> LineSeg
 maxUDistSegGG pts1 pts2 = 
-  foldl longerSeg zeroSeg $ map (maxUDistSegGS pts1) (getSegments pts2)
+  foldl longerSeg zeroSeg $ map (maxUDistSegGSaprx pts1) (getSegments pts2)
 
 -- D_{A,B} max unsigned distance between polygons A and B
 maxUDistGG :: Polygon -> Polygon -> Double
@@ -213,7 +207,11 @@ cookieSeg pts (p1,p2) = let
   allSegments = tail $ 
     map (\i->if i==0 then ((0,0),(0,0)) 
     else (cutPtsSorted!!i,cutPtsSorted!!(i-1))) [0..((length cutPts)-1)]
-  inside (p1,p2) = outsidedness pts p1<0 || outsidedness pts p2<0
+  inside (pt1,pt2) = let
+    ((x1,y1),(x2,y2)) = (pt1,pt2)
+    midpt = ((x1+x2)/2, (y1+y2)/2)
+    in outsidedness pts midpt < 0
+    --outsidedness pts pt1<0 || outsidedness pts pt2<0
   (l1, l2) = partition inside allSegments
   in (filter (\(p1,p2)->dist p1 p2>epsilon) l1, 
       filter (\(p1,p2)->dist p1 p2>epsilon) l2)
@@ -233,6 +231,8 @@ minSignedDistSegGG polyA polyB = let
   lenIn = dist p3 p4
   in if lenIn>0 then (p3,p4) else (p1,p2)
 
+-- max signed
+
 maxSignedDistSegGG :: Polygon -> Polygon -> LineSeg
 maxSignedDistSegGG polyA polyB = let
   (inside, outside) = cookiePoly polyA polyB
@@ -240,3 +240,41 @@ maxSignedDistSegGG polyA polyB = let
   (p3,p4) = foldl shorterSeg infSeg $ map (shortestSegmentGS polyA) inside
   lenOut = dist p1 p2
   in if lenOut>0 then (p1,p2) else (p3,p4)
+
+maxSignedDistGG :: Polygon -> Polygon -> Double
+maxSignedDistGG polyA polyB = let
+  (x,y) = maxSignedDistSegGG polyA polyB
+  fromA = (dist x $ closestPointGP polyA x) < epsilon
+  pb = if fromA then y else x
+  in (outsidedness polyA pb) * (dist x y)
+
+
+-- aprx below
+
+maxSignedDistSegGGaprx :: Polygon -> Polygon -> LineSeg
+maxSignedDistSegGGaprx polyA polyB = foldl longerSeg zeroSeg $ 
+  map (\seg->maxSignedDistSegGSaprx polyA seg) $ getSegments polyB
+
+maxSignedDistGGaprx :: Polygon -> Polygon -> Double
+maxSignedDistGGaprx polyA polyB = let (x,y) = maxSignedDistSegGGaprx polyA polyB in dist x y
+
+-- sampled
+maxSignedDistGSaprx :: Polygon -> LineSeg -> Double
+maxSignedDistGSaprx poly seg = let
+  (pa, pb) = maxSignedDistSegGSaprx poly seg
+  in (outsidedness poly pb) * (dist pa pb)
+  
+-- sampled
+maxSignedDistSegGSaprx :: Polygon -> LineSeg -> LineSeg
+maxSignedDistSegGSaprx pts ((x1,y1), (x2,y2)) = let
+  density = (dist (x1,y1) (x2,y2)) * 2
+  stepx = (x2-x1) / density
+  stepy = (y2-y1) / density
+  indices = [0..density]
+  samplesRaw = map (\i->(x1+i*stepx, y1+i*stepy)) indices
+  samples = filter (\(x,_)->(x-x1)/(x2-x1)<=1) samplesRaw
+  (inside, outside) = partition (\p->(outsidedness pts p)<0) samples
+  shortestIn = foldl shorterSeg infSeg $ map (\p->(closestPointGP pts p, p)) inside
+  longestOut = foldl longerSeg zeroSeg $ map (\p->(closestPointGP pts p, p)) outside
+  in if (length outside)==0 then shortestIn else longestOut
+

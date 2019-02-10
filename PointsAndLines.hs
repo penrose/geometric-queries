@@ -404,3 +404,4 @@ solverPP (b1, b2) a1 a2 = if dist a1 a2 < epsilon then -1 else let
         tx = (ixx-x0) / a
         ty = (ixy-y0) / b
         in if not $ isInfinite tx then tx else ty
+      Nothing -> -1
