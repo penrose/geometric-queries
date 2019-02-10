@@ -13,7 +13,6 @@ import Polygons
 import Gradients
 import Debug.Trace
 
-
 data Output = Output {
   oType :: String,
   value :: String
@@ -86,12 +85,18 @@ eval func args = case func of
   "maxSignedDistSegGG" -> strSeg $
     maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
 
-  "containGGCout" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
-    containGGCout (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
-  "combGGCout" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPt d) ++"]]") $
-    combGGCout (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
-  "combGCGCout" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPoly d) ++"]]") $
-    combGCGCout (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
+  "containB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+    containB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "disjB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+    disjB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "inTangB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+    inTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "outTangB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+    outTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "bdixB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+    bdixB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "bdixAB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++",["++ (strPoly d) ++"]]") $
+    bdixAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
     
   -- below: for test in js
   "maxUDistGG" -> show $

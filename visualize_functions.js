@@ -3,19 +3,46 @@ var EPS4 = Math.pow(0.1, 4);
 
 var gradFuncsList = [
     {
-      f: "containGGCout",
+      f: "containB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'encourage containment <poly> <poly> <pt>',
+      str: 'A contain B <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
     },{
-      f: "combGCGCout",
+      f: "disjB",
+      type: [2,4,1],
+      epsilon: EPS,
+      str: 'A, B disjoint <poly> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    },{
+      f: "inTangB",
+      type: [2,4,1],
+      epsilon: EPS,
+      str: 'A contain B, inside tangent <poly> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    },{
+      f: "outTangB",
+      type: [2,4,1],
+      epsilon: EPS,
+      str: 'A contain B, inside tangent <poly> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    },{
+      f: "bdixAB",
       type: [3,4,1],
       epsilon: EPS,
-      str: 'comb <poly> <pt> <poly> <pt>',
+      str: 'boundary intersect <poly> <pt> <poly> <pt>',
       action: (res)=>{
         pInd = selections[0];
         elems[pInd] = copyElem(res);
@@ -25,16 +52,12 @@ var gradFuncsList = [
         elems[pInd] = copyElem(res);
       }
     },{
-      f: "combGGCout",
+      f: "bdixB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'comb <poly> <poly> <pt>',
+      str: 'boundary intersect <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
-        elems[pInd] = copyElem(res);
-      },
-      action2: (res)=>{
-        pInd = selections[2];
         elems[pInd] = copyElem(res);
       }
     }

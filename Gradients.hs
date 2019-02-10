@@ -1,8 +1,11 @@
 module Gradients (
   -- two polygons
-  combGGCout,
-  combGCGCout,
-  containGGCout
+  bdixB,
+  bdixAB,
+  containB,
+  disjB,
+  inTangB,
+  outTangB
 ) where
 
 import PointsAndLines
@@ -14,11 +17,86 @@ import Debug.Trace
 stepInterval::Double
 stepInterval = 4
 
----------- two polygons ------------
 
-combGGC :: Polygon -> Polygon -> Point -> [Double] -> [Double]
-combGGC polyA polyB (cx,cy) [mx, my, t, s] = let
-  appliedT = movebyGm polyB (mx,my) --scalePGk c polyB s
+---------- Below: encourage or discourage queries ----------
+
+outTangB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double])
+outTangB polyA polyB c cumulative [k1, k2, k3] = let
+  f cum = (energyInsideGGC polyA polyB c cum) + (mindsqGGC polyA polyB c cum)
+  g cum = let 
+    [m1',m2',r',s'] = add' (energyInsideGradGGC polyA polyB c cum) 
+                           (mindsqGradGGC polyA polyB c cum)
+    in [k1*m1', k1*m2', k2*r', k3*s']
+  in output polyA polyB c f g cumulative
+
+inTangB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double])
+inTangB polyA polyB c cumulative [k1, k2, k3] = let
+  f cum = (energyOutsideGGC polyA polyB c cum) + (mindsqGGC polyA polyB c cum)
+  g cum = let 
+    [m1',m2',r',s'] = add' (energyOutsideGradGGC polyA polyB c cum) 
+                           (mindsqGradGGC polyA polyB c cum)
+    in [k1*m1', k1*m2', k2*r', k3*s']
+  in output polyA polyB c f g cumulative
+
+disjB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double])
+disjB polyA polyB c cumulative [k1, k2, k3] = let
+  f = energyInsideGGC polyA polyB c
+  g cumulative = let 
+    [m1',m2',r',s'] = energyInsideGradGGC polyA polyB c cumulative
+    in [k1*m1', k1*m2', k2*r', k3*s']
+  in output polyA polyB c f g cumulative
+
+-- this version of encouraging containment: uses integration of distsq along edge as energy
+containB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double])
+containB polyA polyB c cumulative [k1, k2, k3] = let
+  f = energyOutsideGGC polyA polyB c
+  g cumulative = let 
+    [m1',m2',r',s'] = energyOutsideGradGGC polyA polyB c cumulative
+    in [k1*m1', k1*m2', k2*r', k3*s']
+  in output polyA polyB c f g cumulative
+
+bdixAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+          -> (Polygon, Double, [Double], Polygon)
+bdixAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+  polyA' = scalePGk cA (rotateAroundPGa cA (movebyGm polyA (c11,c12)) c13) c14
+  polyB' = scalePGk cB (rotateAroundPGa cB (movebyGm polyB (c21,c22)) c23) c24
+  (polyBres, gradB, cumB) = bdixB polyA' polyB cB [c21,c22,c23,c24] weights
+  (polyAres, gradA, cumA) = bdixB polyB' polyA cA [c11,c12,c13,c14] weights
+  in (polyAres, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
+
+bdixB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double])
+bdixB polyA polyB c cumulative [k1, k2, k3] = let
+  f = mindsqGGC polyA polyB c
+  g [m1,m2,r,s] = res where
+    [m1',m2',r',s'] = mindsqGradGGC polyA polyB c [m1,m2,r,s]
+    res = [k1*m1', k1*m2', k2*r', k3*s']
+  in output polyA polyB c f g cumulative
+
+---------- Helper for outputting to JS ----------
+
+output polyA polyB c f g cumulative = let
+  [cumT1, cumT2, cumR, cumS] = cumulative
+  dir = neg' $ normalize' $ g cumulative 
+  [m1', m2', r', s'] = valof' 4 $ linesearch f g dir cumulative
+  delt = [m1', m2', r', s']
+  appliedT = movebyGm polyB (cumT1+m1', cumT2+m2')
+  appliedTR = rotateAroundPGa c appliedT (cumR+r')
+  appliedTRS = scalePGk c appliedTR (cumS+s')
+  g0 = mag' $ g $ add' cumulative delt
+  in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 else g0, add' cumulative delt)
+
+---------- Below: 3 energies (and gradients) ----------
+
+mindsqGGC :: Polygon -> Polygon -> Point -> [Double] -> Double
+mindsqGGC polyA polyB c [m1, m2, r, s] = let
+  appliedT = movebyGm polyB (m1,m2)
+  appliedTR = rotateAroundPGa c appliedT r
+  appliedTRS = scalePGk c appliedTR s
+  in (unsignedDistGG polyA appliedTRS)**2
+
+mindsqGradGGC :: Polygon -> Polygon -> Point -> [Double] -> [Double]
+mindsqGradGGC polyA polyB (cx,cy) [mx, my, t, s] = let
+  appliedT = movebyGm polyB (mx,my)
   appliedTR = rotateAroundPGa (cx,cy) appliedT t
   appliedTRS = scalePGk (cx,cy) appliedTR s
   ((x1',y1), (x2',y2)) = shortestSegmentGG polyA appliedTRS
@@ -27,37 +105,7 @@ combGGC polyA polyB (cx,cy) [mx, my, t, s] = let
   revS = scalePPk (cx,cy) (x1'',x2'') (1/s)
   revSR = rotateAroundPPa (cx,cy) revS (-t)
   (x1,x2) = movebyPm revSR (-mx,-my)
-  in reduceDistGCPbPa polyA (cx,cy) (x1,x2) (v1,v2) [mx,my,t,s]  
-
-combGCGCout :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double], Polygon)
-combGCGCout polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
-  polyA' = scalePGk cA (rotateAroundPGa cA (movebyGm polyA (c11,c12)) c13) c14
-  polyB' = scalePGk cB (rotateAroundPGa cB (movebyGm polyB (c21,c22)) c23) c24
-  (polyBres, gradB, cumB, _) = combGGCout polyA' polyB cB [c21,c22,c23,c24] weights
-  (polyAres, gradA, cumA, _) = combGGCout polyB' polyA cA [c11,c12,c13,c14] weights
-  in trace ((show gradA)++" "++(show gradB)) $ (polyAres, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
-
-combGGCout :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double], Point)
-combGGCout polyA polyB c cumulative [k1, k2, k3] = let
-  [cumT1, cumT2, cumR, cumS] = cumulative
-  -- energy: dist sqr after all transformations applied (trans -> rot -> scale)
-  -- defining energy to be dist squared, but use gradient of distsq + 1/s (to disallow negative scale) ?
-  f [m1,m2,r,s] = let 
-    appliedT = movebyGm polyB (m1,m2) --scalePGk c polyB s
-    appliedTR = rotateAroundPGa c appliedT r
-    appliedTRS = scalePGk c appliedTR s
-    in (unsignedDistGG polyA appliedTRS)**2
-  g [m1,m2,r,s] = res where
-    [m1',m2',r',s'] = combGGC polyA polyB c [m1,m2,r,s]
-    res = [k1*m1', k1*m2', k2*r', k3*s']
-  dir = neg' $ normalize' $ g cumulative
-  [m1', m2', r', s'] = valof' 4 $ linesearch f g dir cumulative
-  delt = [m1', m2', r', s']
-  appliedT = movebyGm polyB (cumT1+m1', cumT2+m2') --scalePGk c polyB s
-  appliedTR = rotateAroundPGa c appliedT (cumR+r')
-  appliedTRS = scalePGk c appliedTR (cumS+s')
-  g0 = mag' $ g $ add' cumulative delt
-  in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 else g0, add' cumulative delt, c)
+  in reduceDistGCPbPa polyA (cx,cy) (x1,x2) (v1,v2) [mx,my,t,s] 
 
 energyOutsideGradGGC :: Polygon -> Polygon -> Point -> [Double] -> [Double]
 energyOutsideGradGGC polyA polyB c cumulative = 
@@ -75,9 +123,11 @@ energyInsideGGC :: Polygon -> Polygon -> Point -> [Double] -> Double
 energyInsideGGC polyA polyB c cumulative = 
   dsqIntegralGGC polyA polyB c cumulative False
 
+---------- Helpers for calculating energies (and gradients) ----------
+
 dsqIntegralGGC :: Polygon -> Polygon -> Point -> [Double] -> Bool -> Double
 dsqIntegralGGC polyA polyB c [mx,my,t,s] fromOutside = let
-  appliedT = movebyGm polyB (mx,my) --scalePGk c polyB s
+  appliedT = movebyGm polyB (mx,my)
   appliedTR = rotateAroundPGa c appliedT t
   appliedTRS = scalePGk c appliedTR s
   (inside, outside) = cookiePoly polyA appliedTRS
@@ -89,7 +139,7 @@ dsqIntegralGGC polyA polyB c [mx,my,t,s] fromOutside = let
 
 dsqIntegralGradGGC :: Polygon -> Polygon -> Point -> [Double] -> Bool -> [Double]
 dsqIntegralGradGGC polyA polyB c [mx,my,t,s] fromOutside = let
-  appliedT = movebyGm polyB (mx,my) --scalePGk c polyB s
+  appliedT = movebyGm polyB (mx,my)
   appliedTR = rotateAroundPGa c appliedT t
   appliedTRS = scalePGk c appliedTR s
   (inside, outside) = cookiePoly polyA appliedTRS
@@ -113,7 +163,8 @@ sampleSeg stepsize (x,y) = let
   samplets = [0,(stepsize/len)..1]
   in map (fromT (x,y)) samplets
   
--- input: polyA, c, pt on A, and pt on B that: we know after the cumulative transformation it's closest to Pa.
+-- input: polyA, c, pt on A, and pt on B that: 
+-- we know after the cumulative transformation it's closest to Pa.
 reduceDistGCPbPa :: Polygon -> Point -> Point -> Point -> [Double] -> [Double]
 reduceDistGCPbPa poly (cx,cy) (x1,x2) (v1,v2) [mx, my, t, s] = let
   -- ok ready...
@@ -133,25 +184,7 @@ reduceDistGCPbPa poly (cx,cy) (x1,x2) (v1,v2) [mx, my, t, s] = let
     + cost*mx_cx - sint*my_cy)
     + 2*u2_v2 * (sint*x1 + cost*x2
     + sint*mx_cx + cost*my_cy)
-  -- pen = -1/s**2
   in [dmx, dmy, dt, ds]
-
--- this version of encouraging containment: uses integration of distsq along edge as energy
-containGGCout :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, [Double])
-containGGCout polyA polyB c cumulative [k1, k2, k3] = let
-  [cumT1, cumT2, cumR, cumS] = cumulative
-  f = energyOutsideGGC polyA polyB c
-  g cumulative = let 
-    [m1',m2',r',s'] = energyOutsideGradGGC polyA polyB c cumulative
-    in [k1*m1', k1*m2', k2*r', k3*s']
-  dir = neg' $ normalize' $ g cumulative 
-  [m1', m2', r', s'] = valof' 4 $ linesearch f g dir cumulative
-  delt = [m1', m2', r', s']
-  appliedT = movebyGm polyB (cumT1+m1', cumT2+m2') --scalePGk c polyB s
-  appliedTR = rotateAroundPGa c appliedT (cumR+r')
-  appliedTRS = scalePGk c appliedTR (cumS+s')
-  g0 = mag' $ g $ add' cumulative delt
-  in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 else g0, add' cumulative delt)
 
 {-
 
