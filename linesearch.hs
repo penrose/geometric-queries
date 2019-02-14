@@ -14,8 +14,7 @@ maxLoop = 120
 -- input function to optimize and its gradient
 linesearch :: ([Double] -> Double) -> ([Double] -> [Double]) -> [Double] -> [Double] -> Maybe [Double] -- returns t
 linesearch f g dir arg = let
-  --dir = neg $ normalize $ g arg --search direction: opposite to gradient (should not have to swap ever?)
-  in trace (show$"dir: "++(show dir)) $ if f arg < epsilon then trace ("alr satisfied. ") Nothing -- TODO : this check shouldn't be in linesearch
+  in trace (show$"dir: "++(show dir)) $ if trace "calculating energy when entering linesearch..." $ f arg < epsilon then trace ("alr satisfied. ") Nothing
   else if (directional g dir arg) > 0 then let -- swap at x = arg
   -- if grad is positive, swap the function
   res = trace "flip" $ linesearch f g (neg dir) arg
@@ -23,19 +22,22 @@ linesearch f g dir arg = let
                  Just x -> Just (neg x)
   else let
   -- loop part
-  f0 = f arg --Double
-  g0 = directional g dir arg --Double
+  f0 = trace "also calculating from start of linesearch.. this one used as base" $ f arg --Double
+  g0 = directional g dir arg --Double, directional derivative
   searchLoop alpha beta t counter = if counter > maxLoop then trace "reached max loop count" Nothing
   else let 
     f1 = f (add arg $ mult dir t) -- Double, f [moved in dir of grad of arg by t amt]
-    g1 = directional g dir (add arg $ mult dir t) -- Double, g [...]
-    (alpha', beta') = let am = armijo f0 f1 g0 k1 t in
-      if (not am && g1>0) then (alpha, t)
-      else if wolfeR g0 g1 k2 then (alpha, t) -- overshot while growing interval, start shrinking
-      else if wolfeL g0 g1 k2 then (t, beta) 
+    --g1 = mag $ g $ add arg $ mult dir t--directional g dir (add arg $ mult dir t) -- Double, g [...]
+    gDir = directional g dir (add arg $ mult dir t)
+    (alpha', beta') = let am = trace ("judging for am: f0: "++(show f0)++" f1: "++(show f1)) $ armijo f0 f1 g0 k1 t in
+      if trace ("so, am: "++(show am)) $ (not am {- && gDir>0-}) then (alpha, t)
+      else if wolfeR g0 gDir k2 then (alpha, t) -- overshot while growing interval, start shrinking
+      else if wolfeL g0 gDir k2 then (t, beta) 
       else (t, t)
     in trace ("range: "++(show alpha')++", "++(show beta')) $ if beta'-alpha' < epsilon then trace 
-         ("finished in steps: "++(show counter)++"\nresult step: "++(show alpha')) 
+         ("finished in steps: "++(show counter)++"\nresult step: "++(show alpha')++
+          "\n------input dir grad: "++(show$g0)++"\n------output dir grad: "++(show$gDir)++
+          "\n****** "++(show $ f (add arg $ mult dir alpha')))
          Just $ mult dir alpha' --end condition: range small enough, returns stepsize (how much should displace from arg)
        else if beta' < betaInit then searchLoop alpha' beta' ((beta'+alpha')/2) (counter+1)
        else searchLoop alpha' beta' (alpha' * 2) (counter+1)
@@ -68,7 +70,7 @@ mult v a = map (\x -> a*x) v
 neg :: [Double] -> [Double]
 neg v = map (\x->(-x)) v
 
-armijo f0 f1 g0 k1 t = f1 <= f0 + k1*t*g0*f0 
+armijo f0 f1 g0 k1 t = f1 <= f0 + k1*t*g0
 
 wolfeL g0 g1 k2 = g1 < 0 && (abs g1) >= (abs $ g0*k2)
 

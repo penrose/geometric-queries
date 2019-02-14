@@ -87,6 +87,8 @@ eval func args = case func of
 
   "containB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
     containB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "containedB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
+    containedB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "disjB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $
     disjB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "inTangB" -> (\(a,b,c) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "]") $

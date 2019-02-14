@@ -12,6 +12,15 @@ var gradFuncsList = [
         elems[pInd] = copyElem(res);
       }
     },{
+      f: "containedB",
+      type: [2,4,1],
+      epsilon: EPS,
+      str: 'B contain A <poly> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      }
+    },{
       f: "disjB",
       type: [2,4,1],
       epsilon: EPS,
@@ -33,7 +42,7 @@ var gradFuncsList = [
       f: "outTangB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'A contain B, inside tangent <poly> <poly> <pt>',
+      str: 'A contain B, outside tangent <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
