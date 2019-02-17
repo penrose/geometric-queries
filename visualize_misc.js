@@ -83,11 +83,22 @@ function step() {
   // additional argument: cumulative change
   args.push([cumulative]);
   if (type>=2) args.push([[getInput('in1'),getInput('in2'),getInput('in3')]]); // combination: one additional arg (weight)
-  var [move, state, cum, additional] = evaluate (func.f, args);
+  var [move, state, grad, cum, additional] = evaluate (func.f, args);
+  var dCum = new Array(cumulative.length);
+  for(var i=0; i<cumulative.length; i++) {
+    dCum[i] = cum[i] - cumulative[i];
+  }
   cumulative = cum;
   func.action (move);
   if (additional) func.action2 (additional);
-  console.log(state + ", " + cum);
+  // console.log("E: "+state + "\ngrad norm: " + grad+"\ncum. change: "+cumulative);
+  var consoleObj = {
+    'energy': state,
+    'grad norm': grad,
+    'delta norm': Math.sqrt(dCum.map(n=>n**2).reduce((a,b)=>a+b))
+  }
+  console.log(state+", "+grad+", "+Math.sqrt(dCum.map(n=>n**2).reduce((a,b)=>a+b)));
+  // console.table([consoleObj]);
   if (Math.abs(state) < func.epsilon || stepCounter >= MAX_STEPS) {
     console.log("stopped.");
     autostep = false; // need to generalize stoping condition
@@ -125,6 +136,7 @@ function evaluate (exp, args) {
     async: false
   })
   try {
+    // console.log(result.value);
     return eval(result.value);
   } catch (err) {
     return JSON.parse(result.value);

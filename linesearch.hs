@@ -6,7 +6,7 @@ import Debug.Trace
 
 epsilon = 0.1 ** 10
 betaInit = 1/0
-(k1, k2) = (0.03, 0.96)
+(k1, k2) = (0.5, 0.96)
 initialt = 0.3 -- avoids cumulative scale 0 (at which grad is not defined)
 
 maxLoop = 120
@@ -22,22 +22,20 @@ linesearch f g dir arg = let
                  Just x -> Just (neg x)
   else let
   -- loop part
-  f0 = trace "also calculating from start of linesearch.. this one used as base" $ f arg --Double
+  f0 = f arg --Double
   g0 = directional g dir arg --Double, directional derivative
   searchLoop alpha beta t counter = if counter > maxLoop then trace "reached max loop count" Nothing
   else let 
     f1 = f (add arg $ mult dir t) -- Double, f [moved in dir of grad of arg by t amt]
-    --g1 = mag $ g $ add arg $ mult dir t--directional g dir (add arg $ mult dir t) -- Double, g [...]
     gDir = directional g dir (add arg $ mult dir t)
-    (alpha', beta') = let am = trace ("judging for am: f0: "++(show f0)++" f1: "++(show f1)) $ armijo f0 f1 g0 k1 t in
-      if trace ("so, am: "++(show am)) $ (not am {- && gDir>0-}) then (alpha, t)
+    (alpha', beta') = let am = trace ("judging for armijo: f0: "++(show f0)++" f1: "++(show f1)) $ armijo f0 f1 g0 k1 t in
+      if trace ("armijo: "++(show am)) $ (not am) then (alpha, t)
       else if wolfeR g0 gDir k2 then (alpha, t) -- overshot while growing interval, start shrinking
       else if wolfeL g0 gDir k2 then (t, beta) 
       else (t, t)
     in trace ("range: "++(show alpha')++", "++(show beta')) $ if beta'-alpha' < epsilon then trace 
          ("finished in steps: "++(show counter)++"\nresult step: "++(show alpha')++
-          "\n------input dir grad: "++(show$g0)++"\n------output dir grad: "++(show$gDir)++
-          "\n****** "++(show $ f (add arg $ mult dir alpha')))
+          "\n------input dir grad: "++(show$g0)++"\n------output dir grad: "++(show$gDir))
          Just $ mult dir alpha' --end condition: range small enough, returns stepsize (how much should displace from arg)
        else if beta' < betaInit then searchLoop alpha' beta' ((beta'+alpha')/2) (counter+1)
        else searchLoop alpha' beta' (alpha' * 2) (counter+1)
