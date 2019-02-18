@@ -11,7 +11,7 @@ var gradFuncsList = [
         pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
-    },{
+    },/*{
       f: "containedB",
       type: [2,4,1],
       epsilon: EPS,
@@ -20,7 +20,7 @@ var gradFuncsList = [
         pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
-    },{
+    },*/{
       f: "disjB",
       type: [2,4,1],
       epsilon: EPS,

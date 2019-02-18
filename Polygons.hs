@@ -4,6 +4,7 @@ module Polygons (
   unitSq2,
   ---- from this Polygons module ----
   Polygon,
+  bbox,
   outsidedness,
   getSegments,
   closestPointGP,
