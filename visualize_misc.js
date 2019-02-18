@@ -82,7 +82,8 @@ function step() {
   }
   // additional argument: cumulative change
   args.push([cumulative]);
-  if (type>=2) args.push([[getInput('in1'),getInput('in2'),getInput('in3')]]); // combination: one additional arg (weight)
+  // combination: one additional arg (weight)
+  if (type>=2) args.push([[getInput('in1'),getInput('in2'),getInput('in3')]]); 
   var [move, state, grad, cum, additional] = evaluate (func.f, args);
   var dCum = new Array(cumulative.length);
   for(var i=0; i<cumulative.length; i++) {
@@ -97,7 +98,8 @@ function step() {
     'grad norm': grad,
     'delta norm': Math.sqrt(dCum.map(n=>n**2).reduce((a,b)=>a+b))
   }
-  console.log(state+", "+grad+", "+Math.sqrt(dCum.map(n=>n**2).reduce((a,b)=>a+b)));
+  console.log(state+", "+grad+", "
+    +cumulative/*Math.sqrt(dCum.map(n=>n**2).reduce((a,b)=>a+b))*/);
   // console.table([consoleObj]);
   if (Math.abs(state) < func.epsilon || stepCounter >= MAX_STEPS) {
     console.log("stopped.");

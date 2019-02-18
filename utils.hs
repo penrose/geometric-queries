@@ -115,3 +115,4 @@ scalePSk c (x, y) k = (scalePPk c x k, scalePPk c y k)
 
 scalePGk :: Point -> Polygon -> Double -> Polygon
 scalePGk c poly k = map (\p -> scalePPk c p k) poly
+

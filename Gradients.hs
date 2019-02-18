@@ -16,8 +16,9 @@ import Utils
 import Debug.Trace
 
 stepInterval::Double
-stepInterval = 2
+stepInterval = 1
 
+bsize = 200
 
 ---------- Below: encourage or discourage queries ----------
 
@@ -68,12 +69,15 @@ containedB polyA polyB c cumulative [k1, k2, k3] = let
 
 -- this version of encouraging containment: uses integration of distsq along edge as energy
 containB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> (Polygon, Double, Double, [Double])
-containB polyA polyB c cumulative [k1, k2, k3] = let
-  f = energyOutsideGGC polyA polyB c
+containB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
+  polyA' = scalePGk c polyA (1/k1)
+  polyB' = scalePGk c polyB (1/k1)
+  f = energyOutsideGGC polyA' polyB' c
   g cumulative = let 
-    [m1',m2',r',s'] = energyOutsideGradGGC polyA polyB c cumulative
-    in [k1*m1', k1*m2', k2*r', k3*s']
-  in output polyA polyB c f g cumulative
+    [m1',m2',r',s'] = energyOutsideGradGGC polyA' polyB' c cumulative
+    in [m1',m2',r',s']--[k1*m1', k1*m2', k2*r', k3*s']
+  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c f g [mx/k1,my/k1,t,s]
+  in (scalePGk c resPoly k1, f1, g1, [r1*k1, r2*k1, r3, r4])
 
 bdixAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
           -> (Polygon, Double, [Double], Polygon)
@@ -94,6 +98,7 @@ bdixB polyA polyB c cumulative [k1, k2, k3] = let
 
 ---------- Helper for outputting to JS ----------
 
+-- goal: everything this function sees is in warped space coordinates.
 output polyA polyB c f g cumulative = let
   [cumT1, cumT2, cumR, cumS] = cumulative
   gradRaw = g cumulative
@@ -103,22 +108,19 @@ output polyA polyB c f g cumulative = let
   appliedTRS = transformG polyB c [cumT1+m1',cumT2+m2',cumR+r',cumS+s']
   g0 = mag' $ g $ add' cumulative delt
   f0 = f $ add' cumulative delt
-  in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 else f0, g0, add' cumulative delt)
+  in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 
+    else f0, g0, add' cumulative delt)
 
 ---------- Below: 3 energies (and gradients) ----------
 
 mindsqGGC :: Polygon -> Polygon -> Point -> [Double] -> Double
 mindsqGGC polyA polyB c [m1, m2, r, s] = let
-  appliedT = movebyGm polyB (m1,m2)
-  appliedTR = rotateAroundPGa c appliedT r
-  appliedTRS = scalePGk c appliedTR s
+  appliedTRS = transformG polyB c [m1,m2,r,s]
   in (unsignedDistGG polyA appliedTRS)**2
 
 mindsqGradGGC :: Polygon -> Polygon -> Point -> [Double] -> [Double]
 mindsqGradGGC polyA polyB (cx,cy) [mx, my, t, s] = let
-  appliedT = movebyGm polyB (mx,my)
-  appliedTR = rotateAroundPGa (cx,cy) appliedT t
-  appliedTRS = scalePGk (cx,cy) appliedTR s
+  appliedTRS = transformG polyB (cx,cy) [mx,my,t,s]
   ((x1',y1), (x2',y2)) = shortestSegmentGG polyA appliedTRS
   fromA = (dist (x1',y1) $ closestPointGP polyA (x1',y1)) < epsilon
   ((v1,v2), (x1'',x2'')) = if fromA then ((x1',y1),(x2',y2)) else ((x2',y2),(x1',y1))
