@@ -3,7 +3,7 @@ module Gradients (
   bdixB,
   bdixAB,
   containB,
-  --containedB,
+  containedB,
   disjB,
   inTangB,
   outTangB
@@ -20,7 +20,7 @@ stepIntervalRel = 1
 
 --[k1,k2,k3] = [10, 2, 1]
 
-bsize = 30
+bsize = 50
 
 ---------- Below: encourage or discourage queries ----------
 
@@ -66,21 +66,24 @@ containAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
   (polyBres, gradB, cumB) = bdixB polyA' polyB cB [c21,c22,c23,c24] weights
   (polyAres, gradA, cumA) = containB polyB' polyA cA [c11,c12,c13,c14] weights
   in (polyAres, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
-
-containedB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
-(Polygon, Double, Double, [Double])
-containedB polyA polyB c cumulative [k1, k2, k3] = let
-  f = energyOutsideGGC' polyA polyB c
-  g cumulative = let 
-    [m1',m2',r',s'] = neg' $ energyOutsideGradGGC' polyA polyB c cumulative
-    in [k1*m1', k1*m2', k2*r', k3*s']
-  in output polyA polyB c f g cumulative
 -}
+containedB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+  (Polygon, Double, Double, [Double], Point)
+containedB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
+  c' = let ((x1,y1),(x2,y2)) = bbox polyB in ((x1+x2)/2, (y1+y2)/2)
+  polyA' = scalePGk c' polyA (1/bsize)
+  polyB' = scalePGk c' polyB (1/bsize)
+  f = energyOutsideGGC' polyA' polyB' c'
+  g = energyOutsideGradGGC' polyA' polyB' c'
+  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [0, 0, 0, 1]
+  in (scalePGk c' resPoly bsize, f1, g1, [0, 0, t+r3, s*r4], c')
+
 
 -- this version of encouraging containment: uses integration of distsq along edge as energy
-containB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+containB' :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
-containB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
+containB' polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
+  -- each time given originals, move by (x-c) to use as original.
   polyA' = scalePGk c' polyA (1/bsize)
   polyB' = scalePGk c' polyB (1/bsize)
   --pB = transformG polyB c [mx,my,t,s]
@@ -91,6 +94,32 @@ containB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
     in [k1*m1', k1*m2', k2*r', k3*s'] -- here k1, k2, k3 decide which ones are ALLOWED.
   (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [mx/bsize,my/bsize,t,s]
   in (scalePGk c' resPoly bsize, f1, g1, [r1*bsize, r2*bsize, r3, r4])
+
+containB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+  (Polygon, Double, Double, [Double], Point)
+containB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
+{-
+  -- calculated original polygon center
+  (cx,cy) = let ((x1,y1),(x2,y2)) = bbox polyB0 in ((x1+x2)/2, (y1+y2)/2)
+  -- each time given original B, get (x-c) to use as original (which is near origin)
+  polyB = movebyGm polyB0 (-mx-cx,-my-cy)
+  -- map A back
+  polyA = movebyGm polyA0 (-mx-cx,-my-cy)
+  cumulative = [mx, my, t, s]
+  f = energyOutsideGGC polyA polyB (0,0)
+  g = energyOutsideGradGGC polyA polyB (0,0)
+  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA polyB (0,0) f g cumulative
+  (r1',r2') = transformP (r1,r2) (0,0) [0,0,r3,r4]
+  in (movebyGm resPoly (r1'+cx,r2'+cy), f1, g1, [r1'+mx, r2'+my, r3, r4])
+-}
+  c' = let ((x1,y1),(x2,y2)) = bbox polyB in ((x1+x2)/2, (y1+y2)/2)
+  polyA' = scalePGk c' polyA (1/bsize)
+  polyB' = scalePGk c' polyB (1/bsize)
+  f = energyOutsideGGC polyA' polyB' c'
+  g = energyOutsideGradGGC polyA' polyB' c'
+  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [0, 0, 0, 1]
+  in (scalePGk c' resPoly bsize, f1, g1, [0, 0, t+r3, s*r4], c')
+  
 
 bdixAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
           -> (Polygon, Double, [Double], Polygon)
@@ -113,7 +142,7 @@ bdixB polyA polyB c cumulative [k1, k2, k3] = let
 ---------- Helper for outputting to JS ----------
 
 -- goal: everything this function sees is in warped space coordinates.
-output polyA polyB c f g cumulative = let
+output polyA polyB c f g cumulative = trace ("Optimizing around center: "++(show c)) $ let
   [cumT1, cumT2, cumR, cumS] = cumulative
   gradRaw = g cumulative
   dir = neg' $ normalize' $ gradRaw--g cumulative 
@@ -150,7 +179,7 @@ energyOutsideGradGGC polyA polyB c cumulative =
 energyOutsideGGC :: Polygon -> Polygon -> Point -> [Double] -> Double
 energyOutsideGGC polyA polyB c cumulative = 
   dsqIntegralGGC polyA polyB c cumulative True
-{-
+
 energyOutsideGradGGC' :: Polygon -> Polygon -> Point -> [Double] -> [Double]
 energyOutsideGradGGC' polyA polyB c cumulative = 
   dsqIntegralGradGGC' polyA polyB c cumulative True
@@ -158,7 +187,7 @@ energyOutsideGradGGC' polyA polyB c cumulative =
 energyOutsideGGC' :: Polygon -> Polygon -> Point -> [Double] -> Double
 energyOutsideGGC' polyA polyB c cumulative = 
   dsqIntegralGGC' polyA polyB c cumulative True
--}
+
 energyInsideGradGGC :: Polygon -> Polygon -> Point -> [Double] -> [Double]
 energyInsideGradGGC polyA polyB c cumulative = 
   dsqIntegralGradGGC polyA polyB c cumulative False
@@ -205,6 +234,49 @@ dsqIntegralGradGGC polyA polyB c [mx,my,t,s] fromOutside = let
     $ foldl add' [0,0,0,0] 
     $ map (\(a,b)-> let b' = transformP b c [mx,my,t,s] in
       if outsidedness polyA b' > 0 then [0,0,0,0] 
+      else reduceDistCPbPa c b a [mx,my,t,s]
+    ) zp
+  in if fromOutside then resFromOut else resFromIn
+
+--TODO: debug this.
+dsqIntegralGGC' :: Polygon -> Polygon -> Point -> [Double] -> Bool -> Double
+dsqIntegralGGC' polyA polyB c [mx,my,t,s] fromOutside = let
+  stepInterval = stepIntervalRel / bsize
+  -- sample pts on A
+  samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ getSegments polyA
+  appliedTRS = transformG polyB c [mx,my,t,s]
+  -- closest points on B cor. to samples on A
+  closestPs = map (closestPointGP appliedTRS) samples
+  zp = zip samples closestPs
+  -- sum of distsq bt. sample pts on A, and B
+  resFromOut = foldl (\a b->a+b) 0 $ map (\(a,b)->
+    if outsidedness appliedTRS a < 0 then 0 else distsq a b) zp
+  resFromIn = foldl (\a b->a+b) 0 $ map (\(a,b)->
+    if outsidedness appliedTRS a > 0 then 0 else distsq a b) zp
+  res = (if fromOutside then resFromOut else resFromIn) * stepInterval
+  in res
+
+dsqIntegralGradGGC' :: Polygon -> Polygon -> Point -> [Double] -> Bool -> [Double]
+dsqIntegralGradGGC' polyA polyB c [mx,my,t,s] fromOutside = let
+  stepInterval = stepIntervalRel / bsize
+  -- sample pts on A
+  samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ getSegments polyA
+  transformedB = transformG polyB c [mx,my,t,s]
+  -- below: closest pts on B that map to sample pts on A
+  closestPs = map (closestPointGP transformedB) samples
+  cpOrig = map (\p -> let
+    revS = scalePPk c p (1/s)
+    revSR = rotateAroundPPa c revS (-t)
+    in movebyPm revSR (-mx,-my)) closestPs
+  zp = zip samples cpOrig
+  resFromOut = mult' stepInterval
+    $ foldl add' [0,0,0,0] 
+    $ map (\(a,b)-> if outsidedness transformedB a < 0 then [0,0,0,0] 
+      else reduceDistCPbPa c b a [mx,my,t,s]
+    ) zp
+  resFromIn = mult' stepInterval
+    $ foldl add' [0,0,0,0] 
+    $ map (\(a,b)-> if outsidedness transformedB a > 0 then [0,0,0,0] 
       else reduceDistCPbPa c b a [mx,my,t,s]
     ) zp
   in if fromOutside then resFromOut else resFromIn

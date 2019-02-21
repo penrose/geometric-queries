@@ -84,6 +84,18 @@ transformP (x,y) (cx,cy) [mx,my,t,s] = let
 transformG :: Polygon -> Point -> [Double] -> Polygon
 transformG poly c amt = map (\p->transformP p c amt) poly
 
+{-
+squeezeP :: Point -> Point -> [Double] -> Point
+squeezeP (x,y) (cx,cy) [b,w] = let
+  t = atan2 (x-cx) (y-cy)
+
+
+transformSpace :: Polygon -> Polygon -> Point -> [Double] ->
+  (Polygon, Polygon, Point)
+transformSpace polyA polyB (cx,cy) [b,w] = let
+  -- transform everything by calling squeezeP
+-}
+
 movebyPm :: Point -> Vect -> Point
 movebyPm (x,y) (mx,my) = (x+mx, y+my)
 

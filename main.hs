@@ -85,10 +85,10 @@ eval func args = case func of
   "maxSignedDistSegGG" -> strSeg $
     maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
 
-  "containB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++(show d) ++ "]") $
+  "containB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++(show d)++",["++(strPt e)++"]]") $
     containB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
-  {-"containedB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d) ++ "]") $
-    containedB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4)) -}
+  "containedB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d)++",["++(strPt e)++"]]") $
+    containedB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "disjB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d) ++ "]") $
     disjB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "inTangB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d) ++ "]") $

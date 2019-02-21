@@ -4,23 +4,31 @@ var EPS4 = Math.pow(0.1, 4);
 var gradFuncsList = [
     {
       f: "containB",
-      type: [2,4,1],
+      type: [2,4,0],
       epsilon: EPS,
       str: 'A contain B <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
       }
-    },/*{
+    },{
       f: "containedB",
-      type: [2,4,1],
+      type: [2,4,0],
       epsilon: EPS,
       str: 'B contain A <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
       }
-    },*/{
+    },{
       f: "disjB",
       type: [2,4,1],
       epsilon: EPS,
