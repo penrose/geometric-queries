@@ -29,6 +29,7 @@ var stepCounter = 0;
 var terminated = true;
 var args_orig = [];
 var cumulative = [0];
+var prevEnergy = Infinity;
 var MAX_STEPS = 500;
 
 //-------layout--------
@@ -101,6 +102,8 @@ function step() {
   console.log(state+", "+grad+", "
     +cumulative/*Math.sqrt(dCum.map(n=>n**2).reduce((a,b)=>a+b))*/);
   // console.table([consoleObj]);
+  if (state > prevEnergy) console.log('!!! Energy increased!!');
+  prevEnergy = state;
   if (Math.abs(state) < func.epsilon || stepCounter >= MAX_STEPS) {
     console.log("stopped.");
     autostep = false; // need to generalize stoping condition
@@ -108,6 +111,7 @@ function step() {
     terminated = true;
     args = [];
     args_orig = [];
+    prevEnergy = Infinity;
     return;
   }
   stepCounter++;

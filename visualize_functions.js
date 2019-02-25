@@ -30,34 +30,46 @@ var gradFuncsList = [
       }
     },{
       f: "disjB",
-      type: [2,4,1],
+      type: [2,4,0],
       epsilon: EPS,
       str: 'A, B disjoint <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
       }
     },{
       f: "inTangB",
-      type: [2,4,1],
+      type: [2,4,0],
       epsilon: EPS,
       str: 'A contain B, inside tangent <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
       }
     },{
       f: "outTangB",
-      type: [2,4,1],
+      type: [2,4,0],
       epsilon: EPS,
-      str: 'A contain B, outside tangent <poly> <poly> <pt>',
+      str: 'A,B disjoint, outside tangent <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
         elems[pInd] = copyElem(res);
       }
     },{
       f: "bdixAB",
-      type: [3,4,1],
+      type: [3,4,0],
       epsilon: EPS,
       str: 'boundary intersect <poly> <pt> <poly> <pt>',
       action: (res)=>{
@@ -70,7 +82,7 @@ var gradFuncsList = [
       }
     },{
       f: "bdixB",
-      type: [2,4,1],
+      type: [2,4,0],
       epsilon: EPS,
       str: 'boundary intersect <poly> <poly> <pt>',
       action: (res)=>{

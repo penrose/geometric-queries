@@ -265,6 +265,7 @@ var visualization = function (p) {
         terminated = true;
         args = [];
         args_orig = [];
+        prevEnergy = Infinity;
       }/*else if (mode==1 && p.key=='G') {
         graph = !graph;
       }*/ else if(mode==1 && p.key=='g' && terminated) {
