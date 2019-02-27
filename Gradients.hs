@@ -4,7 +4,10 @@ module Gradients (
   bdixAB,
   containB,
   containedB,
+  containAB,
+  containedAB,
   disjB,
+  disjAB,
   inTangB,
   outTangB
 ) where
@@ -39,6 +42,8 @@ outTangB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
   (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [0,0,0,1]
   in (scalePGk c' resPoly bsize, f1, g1, [0,0,t+r3,s*r4], c')
 
+-- make B inside A and tangent to A
+
 inTangB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double], Point)
 inTangB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
@@ -50,6 +55,8 @@ inTangB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
     (mindsqGradGGC polyA' polyB' c' cum)
   (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [0,0,0,1]
   in (scalePGk c' resPoly bsize, f1, g1, [0,0,t+r3,s*r4], c')
+
+-- make A, B disjoint
 
 disjB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double], Point)
@@ -64,18 +71,14 @@ disjB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
   (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [0,0,0,1]
   in (scalePGk c' resPoly bsize, f1, g1, [0, 0, t+r3, s*r4], c')
 
------ containment -----
+disjAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+          -> (Polygon, Double, Double, [Double], Polygon)
+disjAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+  (polyBres, eB, gradB, cumB, cB') = disjB polyA polyB cB [c21,c22,c23,c24] weights
+  (polyAres, eA, gradA, cumA, cA') = disjB polyB polyA cA [c11,c12,c13,c14] weights
+  in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
 
-{-
-containAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
-          -> (Polygon, Double, [Double], Polygon)
-containAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
-  polyA' = scalePGk cA (rotateAroundPGa cA (movebyGm polyA (c11,c12)) c13) c14
-  polyB' = scalePGk cB (rotateAroundPGa cB (movebyGm polyB (c21,c22)) c23) c24
-  (polyBres, gradB, cumB) = bdixB polyA' polyB cB [c21,c22,c23,c24] weights
-  (polyAres, gradA, cumA) = containB polyB' polyA cA [c11,c12,c13,c14] weights
-  in (polyAres, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
--}
+----- containment -----
 
 -- make B contain A
 containedB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
@@ -89,6 +92,13 @@ containedB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
   (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [0, 0, 0, 1]
   in (scalePGk c' resPoly bsize, f1, g1, [0, 0, t+r3, s*r4], c')
 
+containedAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+          -> (Polygon, Double, Double, [Double], Polygon)
+containedAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+  (polyBres, eB, gradB, cumB, cB') = containedB polyA polyB cB [c21,c22,c23,c24] weights
+  (polyAres, eA, gradA, cumA, cA') = containB polyB polyA cA [c11,c12,c13,c14] weights
+  in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
+
 -- make A contain B
 containB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double], Point)
@@ -101,13 +111,18 @@ containB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
   (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB' c' f g [0, 0, 0, 1]
   in (scalePGk c' resPoly bsize, f1, g1, [0, 0, t+r3, s*r4], c')
 
+containAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+          -> (Polygon, Double, Double, [Double], Polygon)
+containAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+  (polyBres, eB, gradB, cumB, cB') = containB polyA polyB cB [c21,c22,c23,c24] weights
+  (polyAres, eA, gradA, cumA, cA') = containedB polyB polyA cA [c11,c12,c13,c14] weights
+  in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
+
 ----- boundary intersection -----
 
 bdixAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
 bdixAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
-  --polyA' = scalePGk cA (rotateAroundPGa cA (movebyGm polyA (c11,c12)) c13) c14
-  --polyB' = scalePGk cB (rotateAroundPGa cB (movebyGm polyB (c21,c22)) c23) c24
   (polyBres, eB, gradB, cumB) = bdixB polyA polyB cB [c21,c22,c23,c24] weights
   (polyAres, eA, gradA, cumA) = bdixB polyB polyA cA [c11,c12,c13,c14] weights
   in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
@@ -230,7 +245,6 @@ dsqIntegralGradGGC polyA polyB c [mx,my,t,s] fromOutside = let
     ) zp
   in if fromOutside then resFromOut else resFromIn
 
---TODO: debug this.
 dsqIntegralGGC' :: Polygon -> Polygon -> Point -> [Double] -> Bool -> Double
 dsqIntegralGGC' polyA polyB c [mx,my,t,s] fromOutside = let
   stepInterval = stepIntervalRel / bsize
@@ -272,41 +286,6 @@ dsqIntegralGradGGC' polyA polyB c [mx,my,t,s] fromOutside = let
       else reduceDistCPbPa c b a [mx,my,t,s]
     ) zp
   in if fromOutside then resFromOut else resFromIn
-
-{-
--- the alternative version: cuts A instead of B, used for making B contain A
-dsqIntegralGGC' :: Polygon -> Polygon -> Point -> [Double] -> Bool -> Double
-dsqIntegralGGC' polyA polyB c [mx,my,t,s] fromOutside = let
-  appliedTRS = transformG polyB c [mx,my,t,s]
-  (inside, outside) = cookiePoly appliedTRS polyA
-  -- sample pts on A
-  samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ 
-    if fromOutside then outside else inside
-  -- sum of distsq bt. sample pts on A, and B
-  sampleSum = foldl (\a b->a+b) 0 $ map (\p->distsq p $ closestPointGP polyB p) samples
-  res = sampleSum * stepInterval
-  in res
-
-dsqIntegralGradGGC' :: Polygon -> Polygon -> Point -> [Double] -> Bool -> [Double]
-dsqIntegralGradGGC' polyA polyB c [mx,my,t,s] fromOutside = let
-  appliedTRS = transformG polyB c [mx,my,t,s]
-  (inside, outside) = cookiePoly appliedTRS polyA
-  -- sample pts on A
-  samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ 
-    if fromOutside then outside else inside
-  -- corresponding pts on B
-  closestPs = map (closestPointGP polyB) samples
-  -- corresponding original pts on B
-  cpOrig = map (\p -> let
-    revS = scalePPk c p (1/s)
-    revSR = rotateAroundPPa c revS (-t)
-    in movebyPm revSR (-mx,-my)) closestPs
-  zp = zip samples cpOrig
-  res = mult' ((fromIntegral $ length cpOrig)/stepInterval) 
-    $ foldl add' [0,0,0,0] 
-    $ map (\(a,b)->reduceDistCPbPa c a b [mx,my,t,s]) zp
-  in res
--}
 
 -- returns a list of sample points along segment, each separated by stepsize pixels
 sampleSeg :: Double -> LineSeg -> [Point]

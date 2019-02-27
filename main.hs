@@ -89,15 +89,21 @@ eval func args = case func of
     containB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "containedB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d)++",["++(strPt e)++"]]") $
     containedB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "containAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
+    containAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
+  "containedAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
+    containedAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
   "disjB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d)++",["++(strPt e)++"]]") $
     disjB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+  "disjAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
+    disjAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
   "inTangB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d)++",[" ++ (strPt e) ++ "]]") $
     inTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "outTangB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d)++",[" ++ (strPt e) ++ "]]") $
     outTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
   "bdixB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d) ++ "]") $
     bdixB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
-  "bdixAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++",["++ (strPoly e) ++"]]") $
+  "bdixAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
     bdixAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
     
   -- below: for test in js

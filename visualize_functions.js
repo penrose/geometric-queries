@@ -16,6 +16,19 @@ var gradFuncsList = [
         elems[pInd] = copyElem(res);
       }
     },{
+      f: "containAB",
+      type: [3,4,0],
+      epsilon: EPS,
+      str: 'A contain B <poly> <pt> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[0];
+        elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
+      }
+    },{
       f: "containedB",
       type: [2,4,0],
       epsilon: EPS,
@@ -29,12 +42,38 @@ var gradFuncsList = [
         elems[pInd] = copyElem(res);
       }
     },{
+      f: "containedAB",
+      type: [3,4,0],
+      epsilon: EPS,
+      str: 'B contain A <poly> <pt> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[0];
+        elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
+      }
+    },{
       f: "disjB",
       type: [2,4,0],
       epsilon: EPS,
       str: 'A, B disjoint <poly> <poly> <pt>',
       action: (res)=>{
         pInd = selections[1];
+        elems[pInd] = copyElem(res);
+      },
+      action2: (res)=>{
+        pInd = selections[2];
+        elems[pInd] = copyElem(res);
+      }
+    },{
+      f: "disjAB",
+      type: [3,4,0],
+      epsilon: EPS,
+      str: 'A, B disjoint <poly> <pt> <poly> <pt>',
+      action: (res)=>{
+        pInd = selections[0];
         elems[pInd] = copyElem(res);
       },
       action2: (res)=>{
@@ -76,7 +115,7 @@ var gradFuncsList = [
         pInd = selections[0];
         elems[pInd] = copyElem(res);
       },
-      action2: ([res])=>{
+      action2: (res)=>{
         pInd = selections[2];
         elems[pInd] = copyElem(res);
       }
