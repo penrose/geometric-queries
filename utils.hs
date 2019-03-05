@@ -73,28 +73,24 @@ sdistPL (p1,p2) ((x1,y1),(x2,y2)) = let
 
 -- (helpers below) returns elements transformed by some amount
 
-transformP :: Point -> Point -> [Double] -> Point
-transformP (x,y) (cx,cy) [mx,my,t,s] = let
+transformP' :: Point -> Point -> [Double] -> Point
+transformP' (x,y) (cx,cy) [mx,my,t,s] = let
   scost = s * (cos t)
   ssint = s * (sin t)
   x' = x*scost - y*ssint + scost*(mx-cx) - ssint*(my-cy) + cx
   y' = x*ssint + y*scost + ssint*(mx-cx) + scost*(my-cy) + cy
   in (x', y')
 
-transformG :: Polygon -> Point -> [Double] -> Polygon
-transformG poly c amt = map (\p->transformP p c amt) poly
+transformP :: Point -> [Double] -> Point
+transformP (x,y) [mx,my,t,s] = let
+  scost = s * (cos t)
+  ssint = s * (sin t)
+  x' = x*scost - y*ssint + mx
+  y' = x*ssint + y*scost + my
+  in (x', y')
 
-{-
-squeezeP :: Point -> Point -> [Double] -> Point
-squeezeP (x,y) (cx,cy) [b,w] = let
-  t = atan2 (x-cx) (y-cy)
-
-
-transformSpace :: Polygon -> Polygon -> Point -> [Double] ->
-  (Polygon, Polygon, Point)
-transformSpace polyA polyB (cx,cy) [b,w] = let
-  -- transform everything by calling squeezeP
--}
+transformG :: Polygon -> [Double] -> Polygon
+transformG poly amt = map (\p->transformP p amt) poly
 
 movebyPm :: Point -> Vect -> Point
 movebyPm (x,y) (mx,my) = (x+mx, y+my)

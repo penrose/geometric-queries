@@ -4,7 +4,7 @@ var EPS4 = Math.pow(0.1, 4);
 var gradFuncsList = [
     {
       f: "containB",
-      type: [2,4,0],
+      type: [2,4,1],
       epsilon: EPS,
       str: 'A contain B <poly> <poly> <pt>',
       action: (res)=>{
@@ -30,7 +30,7 @@ var gradFuncsList = [
       }
     },{
       f: "containedB",
-      type: [2,4,0],
+      type: [2,4,1],
       epsilon: EPS,
       str: 'B contain A <poly> <poly> <pt>',
       action: (res)=>{
@@ -56,7 +56,7 @@ var gradFuncsList = [
       }
     },{
       f: "disjB",
-      type: [2,4,0],
+      type: [2,4,1],
       epsilon: EPS,
       str: 'A, B disjoint <poly> <poly> <pt>',
       action: (res)=>{
@@ -82,7 +82,7 @@ var gradFuncsList = [
       }
     },{
       f: "inTangB",
-      type: [2,4,0],
+      type: [2,4,1],
       epsilon: EPS,
       str: 'A contain B, inside tangent <poly> <poly> <pt>',
       action: (res)=>{
@@ -95,7 +95,7 @@ var gradFuncsList = [
       }
     },{
       f: "outTangB",
-      type: [2,4,0],
+      type: [2,4,1],
       epsilon: EPS,
       str: 'A,B disjoint, outside tangent <poly> <poly> <pt>',
       action: (res)=>{
@@ -108,7 +108,7 @@ var gradFuncsList = [
       }
     },{
       f: "bdixAB",
-      type: [3,4,0],
+      type: [3,4,1],
       epsilon: EPS,
       str: 'boundary intersect <poly> <pt> <poly> <pt>',
       action: (res)=>{
@@ -121,7 +121,7 @@ var gradFuncsList = [
       }
     },{
       f: "bdixB",
-      type: [2,4,0],
+      type: [2,4,1],
       epsilon: EPS,
       str: 'boundary intersect <poly> <poly> <pt>',
       action: (res)=>{

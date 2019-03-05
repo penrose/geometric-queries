@@ -16,7 +16,7 @@ linesearch :: ([Double] -> Double) -> ([Double] -> [Double]) ->
   [Double] -> [Double] -> Maybe [Double]
 linesearch f g dir arg = let
   in trace (show$"dir: "++(show dir)) $ 
-    if trace "calculating energy when entering linesearch..." $ f arg < epsilon 
+    if f arg < epsilon 
     then trace ("alr satisfied. ") Nothing
   else if (directional g dir arg) > 0 then let -- swap at x = arg
   -- if grad is positive, swap the function
