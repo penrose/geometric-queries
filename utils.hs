@@ -124,3 +124,8 @@ scalePSk c (x, y) k = (scalePPk c x k, scalePPk c y k)
 scalePGk :: Point -> Polygon -> Double -> Polygon
 scalePGk c poly k = map (\p -> scalePPk c p k) poly
 
+cent :: Polygon -> Point
+cent poly = let
+  (sumx, sumy) = foldl (\(a,b) (x,y)->(a+x, b+y)) (0,0) poly
+  len = fromIntegral $ length poly
+  in (sumx / len, sumy / len)

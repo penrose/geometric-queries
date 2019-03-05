@@ -23,200 +23,166 @@ stepIntervalRel = 1
 
 bsize = 100
 
-
 ---------- Below: encourage or discourage queries ----------
 
-outTangB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+outTangB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
-outTangB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
-  polyA' = scalePGk (0,0) polyA (1/bsize)
-  polyB' = scalePGk (0,0) polyB (1/bsize)
-  (cx,cy) = if (mx,my)==(0,0) then polyB'!!0 else (mx,my)
-  (offx,offy) = polyB'!!0
-  polyB0 = movebyGm polyB' (-offx,-offy)
-  f cum = (energyInsideGGC polyA' polyB0 cum) + 
-    (energyInsideGGC' polyA' polyB0 cum) +
-    (mindsqGGC polyA' polyB0 cum)
-  g cum = add' (energyInsideGradGGC polyA' polyB0 cum) $
-    add' (energyInsideGradGGC' polyA' polyB0 cum)
-    (mindsqGradGGC polyA' polyB0 cum)
-  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB0 f g [cx,cy,t,s]
-  in (scalePGk (0,0) resPoly bsize, f1, g1, [r1,r2,r3,r4])
+outTangB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
+  f pA pB cum = (energyInsideGGC pA pB cum) + 
+    (energyInsideGGC' pA pB cum) +
+    (mindsqGGC pA pB cum) 
+  g pA pB cum = add' (energyInsideGradGGC pA pB cum) $
+    add' (energyInsideGradGGC' pA pB cum)
+    (mindsqGradGGC pA pB cum)
+  in output polyA polyB f g [mx,my,t,s]
 
 -- make B inside A and tangent to A
 
-inTangB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+inTangB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
-inTangB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
-  polyA' = scalePGk (0,0) polyA (1/bsize)
-  polyB' = scalePGk (0,0) polyB (1/bsize)
-  (cx,cy) = if (mx,my)==(0,0) then polyB'!!0 else (mx,my)
-  (offx,offy) = polyB'!!0
-  polyB0 = movebyGm polyB' (-offx,-offy)
-  f cum = (energyOutsideGGC polyA' polyB0 cum) + (mindsqGGC polyA' polyB0 cum)
-  g cum = add' (energyOutsideGradGGC polyA' polyB0 cum)
-    (mindsqGradGGC polyA' polyB0 cum)
-  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB0 f g [cx,cy,t,s]
-  in (scalePGk (0,0) resPoly bsize, f1, g1, [r1,r2,r3,r4])
+inTangB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
+  f pA pB cum = (energyOutsideGGC pA pB cum) + (mindsqGGC pA pB cum)
+  g pA pB cum = add' (energyOutsideGradGGC pA pB cum)
+    (mindsqGradGGC pA pB cum)
+  in output polyA polyB f g [mx,my,t,s]
 
 -- make A, B disjoint
 
-disjB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+disjB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
-disjB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
-  polyA' = scalePGk (0,0) polyA (1/bsize)
-  polyB' = scalePGk (0,0) polyB (1/bsize)
-  (cx,cy) = if (mx,my)==(0,0) then polyB'!!0 else (mx,my)
-  (offx,offy) = polyB'!!0
-  polyB0 = movebyGm polyB' (-offx,-offy)
-  f cumulative = (energyInsideGGC polyA' polyB0 cumulative) 
-    + (energyInsideGGC' polyA' polyB0 cumulative)
-  g cumulative = add' (energyInsideGradGGC polyA' polyB0 cumulative)
-    (energyInsideGradGGC' polyA' polyB0 cumulative)
-  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB0 f g [cx,cy,t,s]
-  in (scalePGk (0,0) resPoly bsize, f1, g1, [r1,r2,r3,r4])
+disjB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
+  f pA pB cumulative = (energyInsideGGC pA pB cumulative) 
+    + (energyInsideGGC' pA pB cumulative)
+  g pA pB cumulative = add' (energyInsideGradGGC pA pB cumulative)
+    (energyInsideGradGGC' pA pB cumulative)
+  in output polyA polyB f g [mx,my,t,s]
 
-disjAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+disjAB :: Polygon -> Polygon -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
-disjAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+disjAB polyA polyB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
   polyA' = scalePGk (0,0) polyA (1/bsize)
   polyB' = scalePGk (0,0) polyB (1/bsize)
   (cxA,cyA) = (c11,c12)
   (cxB,cyB) = (c21,c22)
-  (offxA, offyA) = polyA'!!0
-  (offxB, offyB) = polyB'!!0
+  (offxA, offyA) = cent polyA'
+  (offxB, offyB) = cent polyB'
   polyA0 = movebyGm polyA' (-offxA, -offyA)
   polyB0 = movebyGm polyB' (-offxB, -offyB)
   polyAnow_s = transformG polyA0 [c11,c12,c13,c14]
   polyBnow_s = transformG polyB0 [c21,c22,c23,c24]
   polyAnow = if (c11,c12)==(0,0) then polyA else scalePGk (0,0) polyAnow_s bsize
   polyBnow = if (c21,c22)==(0,0) then polyB else scalePGk (0,0) polyBnow_s bsize
-  (polyBres, eB, gradB, cumB) = disjB polyAnow polyB cB [c21,c22,c23,c24] weights
-  (polyAres, eA, gradA, cumA) = disjB polyBnow polyA cA [c11,c12,c13,c14] weights
+  (polyBres, eB, gradB, cumB) = disjB polyAnow polyB [c21,c22,c23,c24] weights
+  (polyAres, eA, gradA, cumA) = disjB polyBnow polyA [c11,c12,c13,c14] weights
   in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
 
 ----- containment -----
 
 -- make B contain A
-containedB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+containedB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
-containedB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
-  polyA' = scalePGk (0,0) polyA (1/bsize)
-  polyB' = scalePGk (0,0) polyB (1/bsize)
-  (cx,cy) = if (mx,my)==(0,0) then polyB'!!0 else (mx,my)
-  (offx,offy) = polyB'!!0
-  polyB0 = movebyGm polyB' (-offx,-offy)
-  f = energyOutsideGGC' polyA' polyB0
-  g = energyOutsideGradGGC' polyA' polyB0
-  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB0 f g [cx,cy,t,s]
-  in (scalePGk (0,0) resPoly bsize, f1, g1, [r1,r2,r3,r4])
+containedB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
+  f = energyOutsideGGC'
+  g = energyOutsideGradGGC'
+  in output polyA polyB f g [mx,my,t,s]
 
-
-containedAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+containedAB :: Polygon -> Polygon -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
-containedAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+containedAB polyA polyB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
   polyA' = scalePGk (0,0) polyA (1/bsize)
   polyB' = scalePGk (0,0) polyB (1/bsize)
   (cxA,cyA) = (c11,c12)
   (cxB,cyB) = (c21,c22)
-  (offxA, offyA) = polyA'!!0
-  (offxB, offyB) = polyB'!!0
+  (offxA, offyA) = cent polyA'
+  (offxB, offyB) = cent polyB'
   polyA0 = movebyGm polyA' (-offxA, -offyA)
   polyB0 = movebyGm polyB' (-offxB, -offyB)
   polyAnow_s = transformG polyA0 [c11,c12,c13,c14]
   polyBnow_s = transformG polyB0 [c21,c22,c23,c24]
   polyAnow = if (c11,c12)==(0,0) then polyA else scalePGk (0,0) polyAnow_s bsize
   polyBnow = if (c21,c22)==(0,0) then polyB else scalePGk (0,0) polyBnow_s bsize
-  (polyBres, eB, gradB, cumB) = containedB polyAnow polyB cB [c21,c22,c23,c24] weights
-  (polyAres, eA, gradA, cumA) = containB polyBnow polyA cA [c11,c12,c13,c14] weights
+  (polyBres, eB, gradB, cumB) = containedB polyAnow polyB [c21,c22,c23,c24] weights
+  (polyAres, eA, gradA, cumA) = containB polyBnow polyA [c11,c12,c13,c14] weights
   in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
-
 
 -- make A contain B
-containB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+containB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
-containB polyA polyB c [mx,my,t,s] [k1, k2, k3] = let
-  polyA' = scalePGk (0,0) polyA (1/bsize)
-  polyB' = scalePGk (0,0) polyB (1/bsize)
-  (cx,cy) = if (mx,my)==(0,0) then polyB'!!0 else (mx,my)
-  (offx,offy) = polyB'!!0
-  polyB0 = movebyGm polyB' (-offx,-offy)
-  f = energyOutsideGGC polyA' polyB0
-  g = energyOutsideGradGGC polyA' polyB0
-  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB0 f g [cx,cy,t,s]
-  in (scalePGk (0,0) resPoly bsize, f1, g1, [r1,r2,r3,r4])
+containB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
+  f = energyOutsideGGC 
+  g = energyOutsideGradGGC 
+  in output polyA polyB f g [mx,my,t,s]
 
-
-containAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+containAB :: Polygon -> Polygon -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
-containAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+containAB polyA polyB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
   polyA' = scalePGk (0,0) polyA (1/bsize)
   polyB' = scalePGk (0,0) polyB (1/bsize)
   (cxA,cyA) = (c11,c12)
   (cxB,cyB) = (c21,c22)
-  (offxA, offyA) = polyA'!!0
-  (offxB, offyB) = polyB'!!0
+  (offxA, offyA) = cent polyA'
+  (offxB, offyB) = cent polyB'
   polyA0 = movebyGm polyA' (-offxA, -offyA)
   polyB0 = movebyGm polyB' (-offxB, -offyB)
   polyAnow_s = transformG polyA0 [c11,c12,c13,c14]
   polyBnow_s = transformG polyB0 [c21,c22,c23,c24]
   polyAnow = if (c11,c12)==(0,0) then polyA else scalePGk (0,0) polyAnow_s bsize
   polyBnow = if (c21,c22)==(0,0) then polyB else scalePGk (0,0) polyBnow_s bsize
-  (polyBres, eB, gradB, cumB) = containB polyAnow polyB cB [c21,c22,c23,c24] weights
-  (polyAres, eA, gradA, cumA) = containedB polyBnow polyA cA [c11,c12,c13,c14] weights
+  (polyBres, eB, gradB, cumB) = containB polyAnow polyB [c21,c22,c23,c24] weights
+  (polyAres, eA, gradA, cumA) = containedB polyBnow polyA [c11,c12,c13,c14] weights
   in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
-
 
 ----- boundary intersection -----
 
-bdixAB :: Polygon -> Point -> Polygon -> Point -> [Double] -> [Double] 
+bdixAB :: Polygon -> Polygon -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
-bdixAB polyA cA polyB cB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
+bdixAB polyA polyB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
   polyA' = scalePGk (0,0) polyA (1/bsize)
   polyB' = scalePGk (0,0) polyB (1/bsize)
   (cxA,cyA) = (c11,c12)
   (cxB,cyB) = (c21,c22)
-  (offxA, offyA) = polyA'!!0
-  (offxB, offyB) = polyB'!!0
+  (offxA, offyA) = cent polyA'
+  (offxB, offyB) = cent polyB'
   polyA0 = movebyGm polyA' (-offxA, -offyA)
   polyB0 = movebyGm polyB' (-offxB, -offyB)
   polyAnow_s = transformG polyA0 [c11,c12,c13,c14]
   polyBnow_s = transformG polyB0 [c21,c22,c23,c24]
   polyAnow = if (c11,c12)==(0,0) then polyA else scalePGk (0,0) polyAnow_s bsize
   polyBnow = if (c21,c22)==(0,0) then polyB else scalePGk (0,0) polyBnow_s bsize
-  (polyBres, eB, gradB, cumB) = bdixB polyAnow polyB cB [c21,c22,c23,c24] weights
-  (polyAres, eA, gradA, cumA) = bdixB polyBnow polyA cA [c11,c12,c13,c14] weights
+  (polyBres, eB, gradB, cumB) = bdixB polyAnow polyB [c21,c22,c23,c24] weights
+  (polyAres, eA, gradA, cumA) = bdixB polyBnow polyA [c11,c12,c13,c14] weights
   in (polyAres, eB+eA, sqrt $ gradA**2 + gradB**2, cumA++cumB, polyBres)
 
-bdixB :: Polygon -> Polygon -> Point -> [Double] -> [Double] -> 
+bdixB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
-bdixB polyA polyB dsafdsa [mx,my,t,s] [k1, k2, k3] = let
-  polyA' = scalePGk (0,0) polyA (1/bsize)
-  polyB' = scalePGk (0,0) polyB (1/bsize)
-  (cx,cy) = if (mx,my)==(0,0) then polyB'!!0 else (mx,my)
-  (offx, offy) = polyB'!!0
-  polyB0 = movebyGm polyB' (-offx,-offy)
-  f = mindsqGGC polyA' polyB0
-  g = mindsqGradGGC polyA' polyB0
-  (resPoly, f1, g1, [r1,r2,r3,r4]) = output polyA' polyB0 f g [cx,cy,t,s]
-  in (scalePGk (0,0) resPoly bsize, f1, g1, [r1, r2, r3, r4])
+bdixB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
+  f pA pB cum = (mindsqGGC pA pB cum) - (k1/bsize)**2
+  g = mindsqGradGGC 
+  in output polyA polyB f g [mx,my,t,s]
 
 ---------- Helper for outputting to JS ----------
 
 --TODO in linesearch: quit immediately when f1 = 0
 
--- also polyB should be the ORIGINAL B, centered at origin.
--- goal: everything this function sees is in warped space coordinates.
-output polyA polyB f g cumulative = let
+output polyA polyB f' g' [mx,my,t,s] = let
+  polyA' = scalePGk (0,0) polyA (1/bsize)
+  polyB' = scalePGk (0,0) polyB (1/bsize)
+  (cx,cy) = if (mx,my)==(0,0) then (cent polyB') else (mx,my)
+  (offx, offy) = cent polyB'
+  polyB0 = movebyGm polyB' (-offx,-offy)
+  f = f' polyA' polyB0 
+  g = g' polyA' polyB0
+  --
+  cumulative = [cx,cy,t,s]
   [cumT1, cumT2, cumR, cumS] = cumulative
   gradRaw = g cumulative
-  dir = neg' $ normalize' $ gradRaw--g cumulative 
+  dir = neg' $ normalize' $ gradRaw
   [m1', m2', r', s'] = valof' 4 $ linesearch f g dir cumulative
   delt = [m1', m2', r', s']
-  appliedTRS = transformG polyB [cumT1+m1',cumT2+m2',cumR+r',cumS+s']
+  appliedTRS = transformG polyB0 [cumT1+m1',cumT2+m2',cumR+r',cumS+s']
   g0 = mag' $ g $ add' cumulative delt
   f0 = f $ add' cumulative delt
-  in (appliedTRS, if f (add' cumulative delt) < epsilon then 0 
+  in (scalePGk (0,0) appliedTRS bsize, if f (add' cumulative delt) < epsilon then 0 
     else f0, g0, add' cumulative delt)
 
 ---------- Below: 3 energies (and their gradients) ----------

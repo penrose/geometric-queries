@@ -85,26 +85,25 @@ eval func args = case func of
   "maxSignedDistSegGG" -> strSeg $
     maxSignedDistSegGG (parsePoly (args!!0)) (parsePoly (args!!1))
   "containB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++(show d)++"]") $
-    containB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+    containB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "containedB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d)++"]") $
-    containedB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+    containedB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "containAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
-    containAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
+    containAB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "containedAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
-    containedAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
+    containedAB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "disjB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d)++"]") $
-    disjB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+    disjB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "disjAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
-    disjAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
+    disjAB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "inTangB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d) ++ "]") $
-    inTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+    inTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "outTangB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d) ++ "]") $
-    outTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+    outTangB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "bdixB" -> (\(a,b,c,d) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c)++"," ++ (show d) ++ "]") $
-    bdixB (parsePoly(args!!0)) (parsePoly(args!!1)) (parsePt(args!!2)) (parseList(args!!3)) (parseList(args!!4))
+    bdixB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   "bdixAB" -> (\(a,b,c,d,e) -> "[" ++ (strPoly a) ++ "," ++ (show b) ++ "," ++ (show c) ++ "," ++ (show d) ++","++ (strPoly e) ++"]") $
-    bdixAB (parsePoly(args!!0)) (parsePt(args!!1)) (parsePoly(args!!2)) (parsePt(args!!3)) (parseList(args!!4)) (parseList(args!!5))
-
+    bdixAB (parsePoly(args!!0)) (parsePoly(args!!1)) (parseList(args!!2)) (parseList(args!!3))
   -- below: for test in js
   "maxUDistGG" -> show $
     maxUDistGG (parsePoly (args!!0)) (parsePoly (args!!1))

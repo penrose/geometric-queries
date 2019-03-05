@@ -6,7 +6,7 @@ var gradFuncsList = [
       f: "containB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'A contain B <poly> <poly> <pt>',
+      str: 'A contain B (move B)',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
@@ -19,20 +19,20 @@ var gradFuncsList = [
       f: "containAB",
       type: [3,4,0],
       epsilon: EPS,
-      str: 'A contain B <poly> <pt> <poly> <pt>',
+      str: 'A contain B (move both)',
       action: (res)=>{
         pInd = selections[0];
         elems[pInd] = copyElem(res);
       },
       action2: (res)=>{
-        pInd = selections[2];
+        pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
     },{
       f: "containedB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'B contain A <poly> <poly> <pt>',
+      str: 'B contain A (move B)',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
@@ -45,20 +45,20 @@ var gradFuncsList = [
       f: "containedAB",
       type: [3,4,0],
       epsilon: EPS,
-      str: 'B contain A <poly> <pt> <poly> <pt>',
+      str: 'B contain A (move both)',
       action: (res)=>{
         pInd = selections[0];
         elems[pInd] = copyElem(res);
       },
       action2: (res)=>{
-        pInd = selections[2];
+        pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
     },{
       f: "disjB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'A, B disjoint <poly> <poly> <pt>',
+      str: 'A, B disjoint (move B)',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
@@ -71,20 +71,20 @@ var gradFuncsList = [
       f: "disjAB",
       type: [3,4,0],
       epsilon: EPS,
-      str: 'A, B disjoint <poly> <pt> <poly> <pt>',
+      str: 'A, B disjoint (move both)',
       action: (res)=>{
         pInd = selections[0];
         elems[pInd] = copyElem(res);
       },
       action2: (res)=>{
-        pInd = selections[2];
+        pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
     },{
       f: "inTangB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'A contain B, inside tangent <poly> <poly> <pt>',
+      str: 'A contain B, inside tangent (move B)',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
@@ -97,7 +97,7 @@ var gradFuncsList = [
       f: "outTangB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'A,B disjoint, outside tangent <poly> <poly> <pt>',
+      str: 'A,B disjoint, outside tangent (move B)',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
@@ -110,20 +110,20 @@ var gradFuncsList = [
       f: "bdixAB",
       type: [3,4,1],
       epsilon: EPS,
-      str: 'boundary intersect <poly> <pt> <poly> <pt>',
+      str: 'boundary intersect (move both)',
       action: (res)=>{
         pInd = selections[0];
         elems[pInd] = copyElem(res);
       },
       action2: (res)=>{
-        pInd = selections[2];
+        pInd = selections[1];
         elems[pInd] = copyElem(res);
       }
     },{
       f: "bdixB",
       type: [2,4,1],
       epsilon: EPS,
-      str: 'boundary intersect <poly> <poly> <pt>',
+      str: 'boundary intersect (move B)',
       action: (res)=>{
         pInd = selections[1];
         elems[pInd] = copyElem(res);
