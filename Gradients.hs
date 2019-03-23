@@ -28,34 +28,34 @@ bsize = 100
 outTangB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
 outTangB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
-  f pA pB cum = (energyInsideGGC pA pB cum) + 
-    (energyInsideGGC' pA pB cum) +
-    (mindsqGGC pA pB cum) 
-  g pA pB cum = add' (energyInsideGradGGC pA pB cum) $
-    add' (energyInsideGradGGC' pA pB cum)
-    (mindsqGradGGC pA pB cum)
-  in output polyA polyB f g [mx,my,t,s]
+  f pA pB k1 cum = (energyInsideGGC pA pB k1 cum) + 
+    (energyInsideGGC' pA pB k1 cum) +
+    (mindsqGGC pA pB k1 cum) 
+  g pA pB k1 cum = add' (energyInsideGradGGC pA pB k1 cum) $
+    add' (energyInsideGradGGC' pA pB k1 cum)
+    (mindsqGradGGC pA pB k1 cum)
+  in output polyA polyB f g k1 [mx,my,t,s]
 
 -- make B inside A and tangent to A
 
 inTangB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
 inTangB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
-  f pA pB cum = (energyOutsideGGC pA pB cum) + (mindsqGGC pA pB cum)
-  g pA pB cum = add' (energyOutsideGradGGC pA pB cum)
-    (mindsqGradGGC pA pB cum)
-  in output polyA polyB f g [mx,my,t,s]
+  f pA pB k1 cum = (energyOutsideGGC pA pB k1 cum) + (mindsqGGC pA pB k1 cum)
+  g pA pB k1 cum = add' (energyOutsideGradGGC pA pB k1 cum)
+    (mindsqGradGGC pA pB k1 cum)
+  in output polyA polyB f g k1 [mx,my,t,s]
 
 -- make A, B disjoint
 
 disjB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
 disjB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
-  f pA pB cumulative = (energyInsideGGC pA pB cumulative) 
-    + (energyInsideGGC' pA pB cumulative)
-  g pA pB cumulative = add' (energyInsideGradGGC pA pB cumulative)
-    (energyInsideGradGGC' pA pB cumulative)
-  in output polyA polyB f g [mx,my,t,s]
+  f pA pB k1 cumulative = (energyInsideGGC pA pB k1 cumulative) 
+    + (energyInsideGGC' pA pB k1 cumulative)
+  g pA pB k1 cumulative = add' (energyInsideGradGGC pA pB k1 cumulative)
+    (energyInsideGradGGC' pA pB k1 cumulative)
+  in output polyA polyB f g k1 [mx,my,t,s]
 
 disjAB :: Polygon -> Polygon -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
@@ -84,7 +84,7 @@ containedB :: Polygon -> Polygon -> [Double] -> [Double] ->
 containedB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
   f = energyOutsideGGC'
   g = energyOutsideGradGGC'
-  in output polyA polyB f g [mx,my,t,s]
+  in output polyA polyB f g k1 [mx,my,t,s]
 
 containedAB :: Polygon -> Polygon -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
@@ -111,7 +111,7 @@ containB :: Polygon -> Polygon -> [Double] -> [Double] ->
 containB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
   f = energyOutsideGGC 
   g = energyOutsideGradGGC 
-  in output polyA polyB f g [mx,my,t,s]
+  in output polyA polyB f g k1 [mx,my,t,s]
 
 containAB :: Polygon -> Polygon -> [Double] -> [Double] 
           -> (Polygon, Double, Double, [Double], Polygon)
@@ -156,22 +156,22 @@ bdixAB polyA polyB [c11,c12,c13,c14, c21,c22,c23,c24] weights = let
 bdixB :: Polygon -> Polygon -> [Double] -> [Double] -> 
   (Polygon, Double, Double, [Double])
 bdixB polyA polyB [mx,my,t,s] [k1, k2, k3] = let
-  f pA pB cum = (mindsqGGC pA pB cum) - (k1/bsize)**2
+  f pA pB k1 cum = (mindsqGGC pA pB k1 cum)
   g = mindsqGradGGC 
-  in output polyA polyB f g [mx,my,t,s]
+  in output polyA polyB f g k1 [mx,my,t,s]
 
 ---------- Helper for outputting to JS ----------
 
 --TODO in linesearch: quit immediately when f1 = 0
 
-output polyA polyB f' g' [mx,my,t,s] = let
+output polyA polyB f' g' k1 [mx,my,t,s] = let
   polyA' = scalePGk (0,0) polyA (1/bsize)
   polyB' = scalePGk (0,0) polyB (1/bsize)
   (cx,cy) = if (mx,my)==(0,0) then (cent polyB') else (mx,my)
   (offx, offy) = cent polyB'
   polyB0 = movebyGm polyB' (-offx,-offy)
-  f = f' polyA' polyB0 
-  g = g' polyA' polyB0
+  f = f' polyA' polyB0 k1
+  g = g' polyA' polyB0 k1
   --
   cumulative = [cx,cy,t,s]
   [cumT1, cumT2, cumR, cumS] = cumulative
@@ -185,17 +185,20 @@ output polyA polyB f' g' [mx,my,t,s] = let
   in (scalePGk (0,0) appliedTRS bsize, if f (add' cumulative delt) < epsilon then 0 
     else f0, g0, add' cumulative delt)
 
----------- Below: 3 energies (and their gradients) ----------
+
+---------- Below: energies (and their gradients) ----------
 
 -- input B0
-mindsqGGC :: Polygon -> Polygon -> [Double] -> Double
-mindsqGGC polyA polyB [m1, m2, r, s] = let
+-- offset not used for now
+mindsqGGC :: Polygon -> Polygon -> Double -> [Double] -> Double
+mindsqGGC polyA polyB offset [m1, m2, r, s] = let
   appliedTRS = transformG polyB [m1,m2,r,s]
-  in (unsignedDistGG polyA appliedTRS)**2
+  in (unsignedDistGG polyA appliedTRS)**2 - (offset/bsize)**2
 
 -- input B0
-mindsqGradGGC :: Polygon -> Polygon -> [Double] -> [Double]
-mindsqGradGGC polyA polyB [mx, my, t, s] = let
+-- offset not used for now
+mindsqGradGGC :: Polygon -> Polygon -> Double -> [Double] -> [Double]
+mindsqGradGGC polyA polyB offset [mx, my, t, s] = let
   appliedTRS = transformG polyB [mx,my,t,s]
   ((x1',y1), (x2',y2)) = shortestSegmentGG polyA appliedTRS
   fromA = (dist (x1',y1) $ closestPointGP polyA (x1',y1)) < epsilon
@@ -205,42 +208,42 @@ mindsqGradGGC polyA polyB [mx, my, t, s] = let
   x = rotateAroundPPa (0,0) revTS (-t)
   in reduceDistCPbPa x (v1,v2) [mx,my,t,s]
 
-energyOutsideGradGGC :: Polygon -> Polygon -> [Double] -> [Double]
-energyOutsideGradGGC polyA polyB cumulative = 
-  dsqIntegralGradGGC polyA polyB cumulative True
+energyOutsideGradGGC :: Polygon -> Polygon -> Double -> [Double] -> [Double]
+energyOutsideGradGGC polyA polyB k1 cumulative = 
+  dsqIntegralGradGGC polyA polyB k1 cumulative True
   
-energyOutsideGGC :: Polygon -> Polygon -> [Double] -> Double
-energyOutsideGGC polyA polyB cumulative = 
-  dsqIntegralGGC polyA polyB cumulative True
+energyOutsideGGC :: Polygon -> Polygon -> Double -> [Double] -> Double
+energyOutsideGGC polyA polyB k1 cumulative = 
+  dsqIntegralGGC polyA polyB k1 cumulative True
 
-energyOutsideGradGGC' :: Polygon -> Polygon -> [Double] -> [Double]
-energyOutsideGradGGC' polyA polyB cumulative = 
-  dsqIntegralGradGGC' polyA polyB cumulative True
+energyOutsideGradGGC' :: Polygon -> Polygon -> Double -> [Double] -> [Double]
+energyOutsideGradGGC' polyA polyB k1 cumulative = 
+  dsqIntegralGradGGC' polyA polyB k1 cumulative True
   
-energyOutsideGGC' :: Polygon -> Polygon -> [Double] -> Double
-energyOutsideGGC' polyA polyB cumulative = 
-  dsqIntegralGGC' polyA polyB cumulative True
+energyOutsideGGC' :: Polygon -> Polygon -> Double -> [Double] -> Double
+energyOutsideGGC' polyA polyB k1 cumulative = 
+  dsqIntegralGGC' polyA polyB k1 cumulative True
 
-energyInsideGradGGC :: Polygon -> Polygon -> [Double] -> [Double]
-energyInsideGradGGC polyA polyB cumulative = 
-  dsqIntegralGradGGC polyA polyB cumulative False
+energyInsideGradGGC :: Polygon -> Polygon -> Double -> [Double] -> [Double]
+energyInsideGradGGC polyA polyB k1 cumulative = 
+  dsqIntegralGradGGC polyA polyB k1 cumulative False
   
-energyInsideGGC :: Polygon -> Polygon -> [Double] -> Double
-energyInsideGGC polyA polyB cumulative = 
-  dsqIntegralGGC polyA polyB cumulative False
+energyInsideGGC :: Polygon -> Polygon -> Double -> [Double] -> Double
+energyInsideGGC polyA polyB k1 cumulative = 
+  dsqIntegralGGC polyA polyB k1 cumulative False
 
-energyInsideGradGGC' :: Polygon -> Polygon -> [Double] -> [Double]
-energyInsideGradGGC' polyA polyB cumulative = 
-  dsqIntegralGradGGC' polyA polyB cumulative False
+energyInsideGradGGC' :: Polygon -> Polygon -> Double -> [Double] -> [Double]
+energyInsideGradGGC' polyA polyB k1 cumulative = 
+  dsqIntegralGradGGC' polyA polyB k1 cumulative False
   
-energyInsideGGC' :: Polygon -> Polygon -> [Double] -> Double
-energyInsideGGC' polyA polyB cumulative = 
-  dsqIntegralGGC' polyA polyB cumulative False
+energyInsideGGC' :: Polygon -> Polygon -> Double -> [Double] -> Double
+energyInsideGGC' polyA polyB k1 cumulative = 
+  dsqIntegralGGC' polyA polyB k1 cumulative False
 
 ---------- Helpers for calculating energies (and gradients) ----------
 
-dsqIntegralGGC :: Polygon -> Polygon -> [Double] -> Bool -> Double
-dsqIntegralGGC polyA polyB [mx,my,t,s] fromOutside = let
+dsqIntegralGGC :: Polygon -> Polygon -> Double  -> [Double] -> Bool -> Double
+dsqIntegralGGC polyA polyB offset [mx,my,t,s] fromOutside = let
   stepInterval = stepIntervalRel / bsize
   samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ getSegments polyB
   transformedSamples = transformG samples [mx,my,t,s]
@@ -254,20 +257,21 @@ dsqIntegralGGC polyA polyB [mx,my,t,s] fromOutside = let
   res = (if fromOutside then sampleSumOut else sampleSumIn) * stepInterval
   in res
 
-dsqIntegralGradGGC :: Polygon -> Polygon -> [Double] -> Bool -> [Double]
-dsqIntegralGradGGC polyA polyB [mx,my,t,s] fromOutside = let
+dsqIntegralGradGGC :: Polygon -> Polygon -> Double -> [Double] -> Bool -> [Double]
+dsqIntegralGradGGC polyA polyB offset [mx,my,t,s] fromOutside = let
   stepInterval = stepIntervalRel / bsize
   samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ getSegments polyB
   transformedSamples = transformG samples [mx,my,t,s]
   closestPs = map (closestPointGP polyA) transformedSamples
   zp = zip closestPs samples
-  resFromOut = mult' stepInterval --mult' ((fromIntegral $ length samples)/stepInterval) $
+  resFromOut = mult' stepInterval
     $ foldl add' [0,0,0,0] 
     $ map (\(a,b)-> let b' = transformP b [mx,my,t,s] in
+      --if outsidedness polyA b' < 0 then [0,0,0,0] 
       if outsidedness polyA b' < 0 then [0,0,0,0] 
       else reduceDistCPbPa b a [mx,my,t,s]
     ) zp
-  resFromIn = mult' stepInterval --mult' ((fromIntegral $ length samples)/stepInterval) $
+  resFromIn = mult' stepInterval 
     $ foldl add' [0,0,0,0] 
     $ map (\(a,b)-> let b' = transformP b [mx,my,t,s] in
       if outsidedness polyA b' > 0 then [0,0,0,0] 
@@ -276,8 +280,8 @@ dsqIntegralGradGGC polyA polyB [mx,my,t,s] fromOutside = let
   in if fromOutside then resFromOut else resFromIn
 
 
-dsqIntegralGGC' :: Polygon -> Polygon -> [Double] -> Bool -> Double
-dsqIntegralGGC' polyA polyB [mx,my,t,s] fromOutside = let
+dsqIntegralGGC' :: Polygon -> Polygon -> Double -> [Double] -> Bool -> Double
+dsqIntegralGGC' polyA polyB offset [mx,my,t,s] fromOutside = let
   stepInterval = stepIntervalRel / bsize
   -- sample pts on A
   samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ getSegments polyA
@@ -293,8 +297,8 @@ dsqIntegralGGC' polyA polyB [mx,my,t,s] fromOutside = let
   res = (if fromOutside then resFromOut else resFromIn) * stepInterval
   in res
 
-dsqIntegralGradGGC' :: Polygon -> Polygon -> [Double] -> Bool -> [Double]
-dsqIntegralGradGGC' polyA polyB [mx,my,t,s] fromOutside = let
+dsqIntegralGradGGC' :: Polygon -> Polygon -> Double -> [Double] -> Bool -> [Double]
+dsqIntegralGradGGC' polyA polyB offset [mx,my,t,s] fromOutside = let
   stepInterval = stepIntervalRel / bsize
   -- sample pts on A
   samples = foldl (\a b->a++b) [] $ map (sampleSeg stepInterval) $ getSegments polyA
