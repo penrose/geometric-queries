@@ -30,7 +30,7 @@ data Request = Request {
 instance FromJSON Request
 
 main :: IO ()
-main = scotty 9200 $ do
+main = scotty 9202 $ do
   get "/" $ do
     IO.liftIO $ putStrLn "on home page..."
     setHeader "Content-Type" "text/html"

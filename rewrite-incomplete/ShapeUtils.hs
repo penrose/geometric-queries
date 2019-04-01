@@ -128,6 +128,15 @@ ixSS (a,b) (c,d) = let
     in ((a_cd>=0&&b_cd<=0) || (a_cd<=0&&b_cd>=0)) && 
        ((c_ab>=0&&d_ab<=0) || (c_ab<=0&&d_ab>=0))
 
+-- sample points along segment with interval.
+sampleS :: (Autofloat a, Enum a) => a -> LineSeg a -> [Point a]
+sampleS interval (a, b) = let
+    l = lenS (a, b)
+    numSamples = floor $ l/interval
+    inds = map realToFrac [0..numSamples-1]
+    ks = map (/(realToFrac numSamples)) $ inds
+    in map (lerp a b) ks
+
 ------- polygon ----------
 
 -- represents a polygon without holes as list of vertices
@@ -169,6 +178,9 @@ getSegmentsG (bds, hs) = let
     bdsegments = getSegmentsB bds
     hsegments = map (\h->getSegmentsB h) hs
     in concat [bdsegments, concat hsegments]
+
+sampleG :: (Autofloat a, Enum a) => a -> Polygon a -> [Point a]
+sampleG interval poly = concat $ map (sampleS interval) $ getSegmentsG poly
 
 ------ TODO: other shapes ----
 type Polyline a = [Point a]
@@ -212,17 +224,59 @@ isIn (Poly (bds, hs)) p = if (dsq(Poly(bds,hs))(Pt p)) < eps then True else let
     in (isInB bds p) && (not inh)
 isIn _ p = False
 
---TODO: find a way to read to Shape a directly (instead of read into Shape Double).
-
 ----------------------- other random tests -----------------------------
 
 energy p [x,y] = dsq p $ Pt[x,y]
 
-test :: Autofloat a => (forall b. Autofloat b => [b] -> b) -> [a]
-test f = grad f [0,0]
+energy2 p [x,y] = dsq (Poly([[3.0,0.0], [0.0,3.0], [x,y]],[])) $ p
+
+density = 0.1
+
+-- seems to work with AD just fine. Although manual version takes only ~63% of run time.
+-- energy of B inside A. trans is for B.
+dsqIntegralIn :: (Autofloat a, Enum a) => Shape a -> Shape a -> [a] -> a
+dsqIntegralIn shapeA (Poly polyB) transf = let
+    samples = sampleG density polyB
+    f p = isIn shapeA $ transformP p transf
+    samplesIn = filter f samples
+    in (*density) $ foldl (+) 0.0 $ map (\p -> dsq shapeA $ Pt(transformP p transf)) samplesIn
+
+-- energy of B outside A. trans is for B.
+dsqIntegralOut :: (Autofloat a, Enum a) => Shape a -> Shape a -> [a] -> a
+dsqIntegralOut shapeA (Poly polyB) transf = let
+    samples = sampleG density polyB
+    f p = not $ isIn shapeA $ transformP p transf
+    samplesOut = filter f samples
+    in (*density) $ foldl (+) 0.0 $ map (\p -> dsq shapeA $ Pt(transformP p transf)) samplesOut
+
+-- containment energy, how energy's calculated could stay the same (I think),
+-- but might want to change type signature 
+eAcontainB :: (Autofloat a, Enum a) => Shape a -> Shape a -> [a] -> a
+eAcontainB shapeA shapeB [x1,x2,x3,x4,x5,x6,x7,x8] = let
+    eAinB = dsqIntegralIn shapeB shapeA [x1,x2,x3,x4]
+    eBoutA = dsqIntegralOut shapeA shapeB [x5,x6,x7,x8]
+    in eAinB + eBoutA
+
+-- this one works w AD, run: test (dsqEnergy (Pt[0.0,0.0]) (Pt[0.0,0.0])) [1,1,0,1]
+dsqEnergy :: (Autofloat a, Enum a) => Shape a -> Shape a -> [a] -> a
+dsqEnergy shapeA (Pt p2) transf = let
+    shapeB = Pt (transformP p2 transf)
+    in dsq shapeA shapeB
+
+testAD :: (Autofloat a, Enum a) => (forall b. (Autofloat b, Enum b) => [b] -> b) -> [a] -> [a]
+testAD f arg = grad f arg
+
+runTests count = let
+    res = foldl add [0,0,0,0] $ 
+        map (\x->testAD (dsqIntegralOut polyA polyB) [-3.5,2.9,0.03,1]) [1..count-1]
+    in trace ((show res)++"\nignore above. true result is: ") $ 
+    testAD (dsqIntegralOut polyA polyB) [-3.5,2.9,0.03,1]
+
+polyA = Poly([[206.0,300.0],[179.0,420.0],[298.0,484.0],[333.0,398.0],[419.0,417.0],[423.0,305.0]],[])
+polyB = Poly([[465.0,163.0],[488.0,230.0],[584.0,257.0],[586.0,313.0],[674.0,283.0],[628.0,163.0]],[])
 
 g = Poly ([[0,0],[1,0],[1,1],[0,1]],[])
-h = Poly ([[-3,-3],[-2,-1],[-1,-1]], [])
+h = Poly ([[0.5,0.5],[-0.5,0.5],[-0.5,-0.5],[0.5,-0.5]], [])
 a = fromShape g
 
 p = Pt [2,3]

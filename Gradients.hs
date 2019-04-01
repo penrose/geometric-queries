@@ -19,9 +19,21 @@ import Utils
 import Debug.Trace
 
 stepIntervalRel::Double
-stepIntervalRel = 1
+stepIntervalRel = 0.1
 
-bsize = 100
+bsize = 1
+
+-- for testing purposes...
+polyA = [(206.0,300.0),(179.0,420.0),(298.0,484.0),(333.0,398.0),(419.0,417.0),(423.0,305.0)]::Polygon
+  --[(0,0),(1,0),(1,1),(0,1)]::Polygon
+polyB = [(465.0,163.0),(488.0,230.0),(584.0,257.0),(586.0,313.0),(674.0,283.0),(628.0,163.0)]::Polygon
+  --[(0.5,0.5),(-0.5,0.5),(-0.5,-0.5),(0.5,-0.5)]::Polygon
+
+runTests count = let
+    res = foldl add' [0,0,0,0] $ 
+        map (\x->energyOutsideGradGGC polyA polyB 0 [-3.5,2.9,0.03,1]) [1..count-1]
+    in trace ((show res)++"\nignore above. true result is: ") $ 
+    energyOutsideGradGGC polyA polyB 0 [-3.5,2.9,0.03,1]
 
 ---------- Below: encourage or discourage queries ----------
 
@@ -327,7 +339,7 @@ dsqIntegralGradGGC' polyA polyB offset [mx,my,t,s] fromOutside = let
 sampleSeg :: Double -> LineSeg -> [Point]
 sampleSeg stepsize (x,y) = let
   len = dist x y
-  samplets = [0,(stepsize/len)..1]
+  samplets = [0,(stepsize/len)..(1-stepsize/len)]
   in map (fromT (x,y)) samplets
   
 -- input: polyA, c, pt on A, and pt on B that: 

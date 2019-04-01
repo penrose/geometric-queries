@@ -35,6 +35,10 @@ normalize xs = let magnitude = mag xs in
 
 dot v1 v2 = let zp = zip v1 v2 in foldl (+) 0 $ map (\(a,b)->a*b) zp
 
+lerp v1 v2 k = let 
+    lerpNum (a,b) = a*(1.0-k) + b*k
+    in map lerpNum $ zip v1 v2
+
 -- transformations
 
 centroid pts = let
